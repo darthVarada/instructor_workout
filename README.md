@@ -1,153 +1,79 @@
-📘 README — Projeto Hands-On Engenharia de Dados
-Plataforma de Treinos Personalizados Baseada em Dados
-Integrantes:
+# 📘 README – Projeto Hands-On Engenharia de Dados
+## 💪 Plataforma de Treinos Personalizados Baseada em Dados
 
-Davi Sasso
+### 👥 Integrantes  
+Davi Sasso  
+Rodrigo Alex  
+Victor Barradas  
 
-Rodrigo Alex
+---
 
-Victor Barradas
+## 🎯 1. Visão Geral
 
-🎯 1. Visão Geral
+Este projeto integra conceitos de Engenharia de Dados, Big Data e Ciência de Dados para desenvolver um MVP de uma plataforma de treinos personalizados baseada em dados.  
+A solução combina ingestão de múltiplas fontes, processamento distribuído, arquitetura em camadas e um modelo de machine learning voltado para recomendar treinos adaptados ao perfil do usuário.
 
-Este projeto integra conceitos de Engenharia de Dados, Big Data e Ciência de Dados para construir um MVP funcional de uma plataforma que recomenda treinos personalizados com base em múltiplas fontes de dados.
+---
 
-O objetivo é unir:
+## 🧩 2. Problema de Negócio
 
-Ingestão e processamento escalável;
+Aplicativos de treino geralmente oferecem recomendações genéricas, sem levar em conta dados reais como comportamento de treino, hábitos, características físicas e objetivos pessoais.  
+A proposta é construir uma solução orientada por dados que gere treinos realmente personalizados, evolutivos e alinhados ao progresso diário do usuário.
 
-Arquitetura moderna (Medallion + Lambda);
+---
 
-Machine Learning aplicado ao comportamento de treino;
+## 🏗️ 3. Arquitetura da Solução
 
-Camada analítica para insights;
+A arquitetura segue o padrão Medallion (Bronze, Silver, Gold), combinando elementos da Arquitetura Lambda para suportar tanto processamento em lote quanto respostas rápidas.
 
-Um bot agente capaz de responder e recomendar treinos com base em dados reais.
+### 📥 Ingestão de Dados  
+Coleta de informações por API de treinos, datasets complementares (ex.: Kaggle) e dados internos como NPS.
 
-O projeto segue as diretrizes oficiais da disciplina, incluindo arquitetura, storytelling, governança e entrega de MVP.
+### 🥉 Bronze Layer  
+Armazena os dados brutos no formato original, garantindo preservação e rastreabilidade.
 
-🧩 2. Problema de Negócio
+### 🥈 Silver Layer  
+Realiza limpeza, padronização e enriquecimento dos dados, preparando-os para análises e construção do dataset final.
 
-Apps de treino geralmente não utilizam dados reais — sono, nutrição, histórico de cargas, frequência semanal — para personalizar treinos.
-Isso resulta em recomendações genéricas e pouco eficientes.
+### 🥇 Gold Layer  
+Camada de consumo com dados refinados, utilizada por dashboards, modelos de machine learning e pelo bot inteligente.
 
-O projeto propõe:
+### ⚙️ Processamento  
+Pipelines implementados com PySpark para transformar e preparar as camadas.
 
-Um pipeline completo que integra dados de treino (via API), dados pessoais, métricas de saúde e comportamento;
+### 🤖 Machine Learning  
+Modelos construídos para recomendar treinos com base no perfil, comportamento e histórico do usuário.
 
-Um modelo de machine learning capaz de recomendar treinos adequados ao objetivo e nível do usuário;
+### 📊 Analytics  
+Dashboards desenvolvidos em Power BI ou Streamlit, permitindo acompanhar métricas de evolução e desempenho.
 
-Uma estrutura de dados que permite evolução, histórico e ajustes contínuos.
+### 💬 Bot Agente  
+Interface conversacional que utiliza dados da camada Gold e predições do modelo para sugerir treinos e interagir com o usuário de forma dinâmica.
 
-🏗️ 3. Arquitetura da Solução
+---
 
-A arquitetura utiliza uma abordagem moderna baseada em:
+## 🛠️ 4. Tecnologias Utilizadas
 
-📥 Ingestão de Dados
+PySpark  
+Python  
+MinIO  
+Docker  
+Pandas  
+Scikit-Learn  
+Power BI ou Streamlit  
+APIs REST  
 
-API externa (treinos)
+---
 
-Bases adicionais (ex.: Kaggle)
+## 📑 5. Entregáveis Atendidos
 
-Dados internos (NPS)
+Este projeto cumpre todos os requisitos do Hands-On da disciplina, incluindo arquitetura em camadas, pipelines de ingestão e transformação, dataset preparado para ciência de dados, modelo preditivo, dashboard analítico e documentação completa para apresentação do MVP.
 
-🥉 Bronze Layer – Dados Brutos
+---
 
-Conjunto original, não transformado
+## ✅ 6. Conclusão
 
-Armazenamento distribuído (MinIO)
+A solução demonstra a aplicação prática de engenharia de dados integrada com machine learning e visualização analítica.  
+O MVP transforma dados brutos em recomendações inteligentes de treino, apresentando uma plataforma moderna, escalável e alinhada às melhores práticas do mercado fitness e de dados.
 
-🥈 Silver Layer – Dados Tratados
 
-Limpeza
-
-Padronização
-
-Enriquecimento inicial
-
-Preparação para camadas superiores
-
-🥇 Gold Layer – Serving Layer
-
-Dados refinados e prontos para consumo
-
-Base final usada por ML, bot e dashboards
-
-⚙️ Processamento
-
-PySpark
-
-Pipelines distribuídos
-
-Transformações batch e em tempo quase real
-
-🧠 Machine Learning
-
-Construção de features a partir da camada Gold
-
-Modelos preditivos para recomendação de treino
-
-Ajuste automático baseado em padrões do usuário
-
-📊 Analytics
-
-Dashboard em Power BI / Streamlit
-
-Indicadores sobre treinos, evolução e engajamento
-
-🤖 Bot Agente
-
-Consome a camada Gold
-
-Acompanha e recomenda treinos personalizados
-
-Serve como interface conversacional com o usuário
-
-🔧 4. Tecnologias Utilizadas
-
-PySpark
-
-Python
-
-MinIO (S3-like)
-
-Docker
-
-Pandas / Scikit-Learn
-
-Power BI / Streamlit
-
-API REST
-
-🧾 5. Entregáveis Atendidos
-
-Conforme o documento da disciplina, o projeto contempla:
-
-Arquitetura Lambda e Medallion implementada
-
-Pipelines de ingestão e transformação
-
-Modelo preditivo funcional
-
-Dashboard analítico com insights
-
-Documentação e storytelling do processo
-
-MVP operacional para apresentação final
-
-
-MACK_HANDS_00
-
-✅ 6. Conclusão
-
-Este projeto demonstra uma solução completa de engenharia + ciência de dados aplicada ao contexto fitness, combinando:
-
-Processamento escalável
-
-Organização moderna de dados
-
-Inteligência preditiva
-
-Visualização orientada ao negócio
-
-Aplicação prática de arquitetura de dados usada no mercado

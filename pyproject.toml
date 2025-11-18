@@ -16,6 +16,7 @@ dependencies = [
     "prometheus-client>=0.23.1",
     "pyarrow>=22.0.0",
     "pydantic>=2.12.4",
+    "pyspark>=4.0.1",
     "s3fs>=2025.10.0",
     "tenacity>=9.1.2",
 ]

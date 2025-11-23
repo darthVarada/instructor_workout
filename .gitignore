@@ -25,6 +25,9 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+tools/
+
+minio.exe
 
 # PyInstaller
 #   Usually these files are written by a python script from a template

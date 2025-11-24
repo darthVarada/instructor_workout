@@ -94,11 +94,11 @@ def _write_bronze_jsonl_to_minio(
 # -------------------------------------------------------
 # MAIN
 # -------------------------------------------------------
-def main():
+def main(**_kwargs):
     print("\n=== 🚀 Ingestão incremental Hevy → Bronze (MinIO) ===\n")
 
     if not API_KEY:
-        print("❌ HEVY_API_KEY não configurada. Abandonando ingestão.")
+        print(f"❌ HEVY_API_KEY não configurada. Abandonando ingestão. chave da API{API_KEY}")
         return
 
     # garante buckets bronze/silver/gold

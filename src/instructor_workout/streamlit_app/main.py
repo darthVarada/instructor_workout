@@ -3,7 +3,8 @@ import os
 
 import pandas as pd
 import streamlit as st
-
+#run
+#uv run streamlit run src/instructor_workout/streamlit_app/main.py
 
 @st.cache_data
 def load_silver():
@@ -44,7 +45,7 @@ def main():
 
     st.title("🏋️ Instructor Workout – Painel simples")
     st.caption("Primeira versão da interface, explorando a camada Silver.")
-
+    # bloco a ser modificado ⬇️
     df, source = load_silver()
     st.info(f"Dados carregados de: **{source}** ({len(df)} linhas)")
 

@@ -18,7 +18,7 @@ def get_s3_client():
     )
 
 
-def main():
+def main(**_kwargs):
     print("\n=== 🚀 Upload Silver → MinIO ===\n")
 
     # 1) Garante que os buckets existem

@@ -60,35 +60,48 @@ def _user_hash_from_key(key: str) -> str:
 # -------------------------------------------------------
 # Escrita no MinIO (bronze/raw)
 # -------------------------------------------------------
-def _write_bronze_jsonl_to_minio(
+
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+
+def _write_bronze_parquet_to_minio(
     workouts: List[Dict[str, Any]], user_id: str
 ) -> str:
     """
-    Escreve JSONL em:
-      s3://bronze/hevy/workouts/raw/user=<user>/dt=YYYYMMDD/workouts_<ts>.jsonl
+    Escreve Parquet em:
+      s3://<BRONZE_BUCKET>/hevy/workouts/raw/user=<user>/dt=YYYYMMDD/workouts_<ts>.parquet
     """
     if not workouts:
         raise ValueError("Nenhum workout para escrever no bronze.")
 
-    s3 = get_s3_client()
-
+    # 1) Monta path particionado (igual antes, só muda extensão)
     now = datetime.now(timezone.utc)
     date_str = now.strftime("%Y%m%d")
     ts = now.strftime("%Y%m%dT%H%M%SZ")
 
-    key = f"hevy/workouts/raw/user={user_id}/dt={date_str}/workouts_{ts}.jsonl"
+    key = f"hevy/workouts/raw/user={user_id}/dt={date_str}/workouts_{ts}.parquet"
 
-    lines = [json.dumps(w, ensure_ascii=False) for w in workouts]
-    body = "\n".join(lines).encode("utf-8")
+    # 2) Converte lista de dicts -> Tabela Arrow
+    #    (funciona bem tanto para campos simples quanto aninhados)
+    table = pa.Table.from_pylist(workouts)
 
+    # 3) Escreve Parquet em memória
+    sink = pa.BufferOutputStream()
+    pq.write_table(table, sink)
+    body = sink.getvalue().to_pybytes()
+
+    # 4) Sobe pro MinIO/S3
+    s3 = get_s3_client()
     s3.put_object(
         Bucket=BRONZE_BUCKET,
         Key=key,
         Body=body,
-        ContentType="application/x-ndjson",
+        ContentType="application/octet-stream",  # ou "application/x-parquet"
     )
 
     return key
+
 
 
 # -------------------------------------------------------
@@ -119,7 +132,7 @@ def main(**_kwargs):
     print(f"📦 Workouts novos encontrados: {len(workouts)}")
 
     # grava no bronze
-    key = _write_bronze_jsonl_to_minio(workouts, user_id)
+    key = _write_bronze_parquet_to_minio(workouts, user_id)
     print(f"\n✓ Bronze salvo em: s3://{BRONZE_BUCKET}/{key}")
 
     # atualiza last_sync com o MAIOR updated_at dos dados recebidos

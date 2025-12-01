@@ -97,7 +97,7 @@ def _write_bronze_parquet_to_minio(
         Bucket=BRONZE_BUCKET,
         Key=key,
         Body=body,
-        ContentType="application/octet-stream",  # ou "application/x-parquet"
+        ContentType="application/parquet",  # ou "application/x-parquet"
     )
 
     return key

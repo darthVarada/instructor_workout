@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -1412,6 +1412,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pymongo" },
     { name = "pyspark" },
+    { name = "python-dotenv" },
     { name = "s3fs" },
     { name = "streamlit" },
     { name = "tenacity" },
@@ -1433,6 +1434,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.4" },
     { name = "pymongo", specifier = ">=4.15.4" },
     { name = "pyspark", specifier = ">=4.0.1" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "s3fs", specifier = ">=2024.3.1" },
     { name = "streamlit", specifier = ">=1.50.0" },
     { name = "tenacity", specifier = ">=9.1.2" },

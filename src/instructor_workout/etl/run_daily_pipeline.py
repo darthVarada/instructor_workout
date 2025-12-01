@@ -1,4 +1,7 @@
 from __future__ import annotations
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def main() -> None:
     # Imports dentro da função para evitar problemas se algum módulo

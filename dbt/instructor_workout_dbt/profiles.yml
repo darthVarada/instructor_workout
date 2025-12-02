@@ -1,0 +1,6 @@
+instructor_workout_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: instructor_workout.duckdb

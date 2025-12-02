@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: exercises_dim
+    description: Dimensão de exercícios
+    columns:
+      - name: exercise_id
+        description: Identificador único do exercício
+
+  - name: muscles_bridge
+    description: Relacionamento exercícios e músculos
+
+  - name: instructions_bridge
+    description: Instruções dos exercícios

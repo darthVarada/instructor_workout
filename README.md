@@ -1,7 +1,6 @@
+# 🏋️‍♂️ Instructor Workout — Plataforma Inteligente de Treinos com IA
 
-# 📘 Projeto Hands-On — Plataforma Inteligente de Treinos (Engenharia de Dados)
-
-Uma solução completa de **engenharia de dados + machine learning + análise** aplicada ao domínio de treinos físicos.
+Uma plataforma completa de **engenharia de dados + personal trainer com IA + recomendação de treinos**, utilizando **MinIO, arquitetura Bronze/Silver/Gold, Streamlit e Groq LLM**.
 
 ---
 
@@ -13,50 +12,107 @@ Uma solução completa de **engenharia de dados + machine learning + análise** 
 
 ---
 
-# 🎯 1. Visão Geral
+# 🎯 1. Visão Geral Atualizada
 
-Este projeto implementa uma arquitetura moderna baseada no padrão **Medallion (Bronze → Silver → Gold)**, alimentada por uma API real de treinos (Hevy API).
+Este projeto implementa:
 
-O MVP oferece:
-
-- Ingestão incremental de treinos via API  
-- Armazenamento distribuído com MinIO (S3-like)  
-- Processamento PySpark  
-- Enriquecimento de dados (Silver → Gold)  
-- Dataset final pronto para modelos de recomendação  
-- Integração com dashboards (Power BI / Streamlit)
+✅ Arquitetura **Medallion (Bronze → Silver → Gold)**  
+✅ Ingestão via **API (Kaggle / Hevy / CSVs)**  
+✅ Armazenamento no **MinIO (S3 local)**  
+✅ Processamento com **Python + Pandas**  
+✅ Camada **Gold analítica**  
+✅ **Aplicação Streamlit** com:
+- Cadastro de perfil
+- Atualização de perfil
+- Exclusão de perfil (cookies)
+- Chat com **Personal Trainer IA (Groq)**
+- Salvamento de treinos recomendados
+- Página de **Treinos Recomendados em tabela**
 
 ---
 
 # 🧩 2. Problema de Negócio
 
-Aplicativos de treino geralmente oferecem recomendações genéricas e pouco personalizadas.  
-Nosso objetivo é criar uma solução orientada a dados capaz de **personalizar treinos** com base no comportamento real do usuário.
+Aplicativos de treino oferecem recomendações genéricas.
+
+Nosso objetivo é:
+
+✅ Criar um **personal trainer virtual**  
+✅ Integrar **dados reais + IA**  
+✅ Gerar **treinos personalizados** com base no perfil do usuário  
+✅ Persistência via **cookies (sem banco por enquanto)**
 
 ---
 
 # 🏗️ 3. Arquitetura da Solução
 
-### 🥉 Bronze  
-Armazena os dados brutos vindos da Hevy API.
+## 🥉 Bronze
 
-### 🥈 Silver  
-Limpa, padroniza e estrutura as informações.
+- Dados brutos da Kaggle / Hevy
+- JSON / CSV
+- Armazenados no MinIO
 
-### 🥇 Gold  
-Enriquece os dados, criando variáveis analíticas como:  
-- duração do treino  
-- trainingDay  
-- métricas para ML  
+```
+s3://bronze/
+```
 
-### 💾 Storage  
-- Data lake no **MinIO**  
-- Buckets: `bronze`, `silver`, `gold`
+---
 
-### ⚙️ Processamento  
-- ETL/ELT com Python  
-- PySpark para transformações distribuídas  
-- Pipelines idempotentes
+## 🥈 Silver
+
+- Dados tratados
+- Limpeza de campos
+- Normalização
+- CSV e Parquet
+
+```
+s3://silver/
+```
+
+---
+
+## 🥇 Gold
+
+- Tabelas analíticas:
+
+| Tabela | Descrição |
+|--------|-----------|
+| exercises_dim | Exercícios principais |
+| muscles_bridge | Exercício x músculos |
+| instructions_bridge | Execução e preparação dos exercícios |
+
+```
+s3://gold/
+```
+
+---
+
+## 🤖 IA
+
+- Modelo Groq:  
+```
+llama-3.1-8b-instant
+```
+
+- Prompt estruturado como:
+
+✅ Grupo 1 / 2 / 3  
+✅ Exercício  
+✅ Séries  
+✅ Repetições  
+✅ Dicas adicionais
+
+---
+
+## 🖥️ Interface
+
+Criada em **Streamlit** com 3 telas principais:
+
+✅ Chat  
+✅ Treinos Recomendados (tabela)  
+✅ Atualizar Perfil  
+
+Cadastro inicial obrigatório.
 
 ---
 
@@ -64,14 +120,13 @@ Enriquece os dados, criando variáveis analíticas como:
 
 | Tecnologia | Uso |
 |-----------|-----|
-| **Python 3.12** | Pipelines/ETL |
-| **uv** | Ambientes e dependências |
-| **PySpark 4** | Processamento distribuído |
-| **MinIO** | Data Lake |
-| **Hevy API** | Fonte de dados |
-| **Pandas** | Silver/Gold |
-| **Power BI / Streamlit** | Dashboards |
-| **Docker (opcional)** | MinIO portátil |
+| Python 3.12 | Backend |
+| uv | Gerenciador de ambiente |
+| Pandas | Processamento Silver/Gold |
+| MinIO | Data Lake |
+| Groq API | Personal Trainer IA |
+| Streamlit | Interface |
+| Cookies Manager | Persistência do usuário |
 
 ---
 
@@ -79,55 +134,44 @@ Enriquece os dados, criando variáveis analíticas como:
 
 ---
 
-## 🔧 5.1 Instalar Java 21
+## 📦 5.1 Instalar dependências
 
-Baixe em:  
-https://www.oracle.com/java/technologies/downloads/
-
-### Configure JAVA_HOME
 ```powershell
-setx JAVA_HOME "C:\Program Files\Java\jdk-21"
-setx PATH "%JAVA_HOME%\bin;%PATH%"
-```
-
-Verifique:
-```
-java -version
+pip install uv
+uv sync
 ```
 
 ---
 
-## 📦 5.2 Instalar e rodar MinIO (Windows)
+## 🪣 5.2 Rodar o MinIO (Windows)
 
-### Baixar MinIO:
-```powershell
-Invoke-WebRequest -Uri "https://dl.min.io/server/minio/release/windows-amd64/minio.exe" -OutFile "minio.exe"
+No seu projeto já existe:
+
+```
+tools/minio.exe
 ```
 
-### Criar pasta de dados:
-```powershell
-mkdir C:\minio\data
-```
+Rode assim:
 
-### Rodar MinIO:
 ```powershell
-.\minio.exe server C:\minio\data --console-address ":9001"
+cd tools
+.\\minio.exe server C:\\minio\\data --console-address ":9001"
 ```
 
 Acessos:
 - Console: http://localhost:9001  
-- API S3: http://localhost:9000  
+- API S3: http://localhost:9000
 
-Credenciais padrão:
+Login padrão:
 ```
 minioadmin / minioadmin
 ```
 
 ---
 
-## 🪣 5.3 Criar os buckets
+## 🪣 5.3 Criar Buckets
 
-Crie no console web:
+Crie no painel do MinIO:
 
 ```
 bronze
@@ -137,24 +181,10 @@ gold
 
 ---
 
-## 🐍 5.4 Instalar dependências com uv
-
-### Instalar uv:
-```powershell
-pip install uv
-```
-
-### Instalar dependências do projeto:
-```powershell
-uv sync
-```
-
----
-
-## 🔐 5.5 Configurar variáveis de ambiente
+## 🔐 5.4 Variáveis de Ambiente
 
 ```powershell
-setx HEVY_API_KEY "SUA_API_KEY_AQUI"
+setx GROQ_API_KEY "SUA_CHAVE_GROQ"
 
 setx S3_ENDPOINT_URL "http://localhost:9000"
 setx MINIO_ACCESS_KEY "minioadmin"
@@ -167,99 +197,122 @@ setx MINIO_GOLD_BUCKET   "gold"
 
 ---
 
-# 🥉 6. Rodar Ingestão Incremental (Bronze)
+# 🥉 6. Ingestão Bronze
 
 ```powershell
-uv run python src/instructor_workout/etl/ingestion/hevy_ingest_incremental_minio.py
+uv run python src/instructor_workout/etl/ingestion/kaggle_ingest_minio.py
 ```
-
-O pipeline irá:
-
-- Usar a `HEVY_API_KEY`
-- Baixar apenas treinos novos
-- Registrar no MinIO em:
-  ```
-  s3://bronze/hevy/workouts/<timestamp>.json
-  ```
-- Atualizar o arquivo `last_sync.json`
 
 ---
 
-# 🥈 7. Upload da camada Silver
-
-Dataset sintético disponível em:
-
-```
-data/silver/synthetic_realistic_workout.csv
-```
-
-Enviar para MinIO:
+# 🥈 7. Bronze → Silver
 
 ```powershell
-uv run python src/instructor_workout/etl/processing/upload_silver_to_minio.py
+uv run python src/instructor_workout/etl/processing/gym_exercises_bronze_to_silver.py
 ```
 
 ---
 
-# 🥇 8. Silver → Gold (Próxima etapa)
+# 🥇 8. Silver → Gold
 
-Será aplicada transformação:
-
-- conversão de timezone  
-- cálculo de duração (end - start)  
-- criação de trainingDay  
-- flatten de exercises  
-- exportação para Parquet  
+```powershell
+uv run python src/instructor_workout/etl/processing/gym_exercises_gold_full.py
+```
 
 ---
 
-# 📂 9. Estrutura do Projeto
+# 🖥️ 9. Rodar o App Streamlit
+
+```powershell
+uv run streamlit run src/instructor_workout/streamlit_app/main.py
+```
+
+Acesse:
+
+```
+http://localhost:8501
+```
+
+---
+
+# 🧑‍💻 10. Funcionalidades do App
+
+✅ Cadastro inicial obrigatório  
+✅ Persistência via cookies  
+✅ Atualizar dados do usuário  
+✅ Excluir perfil (limpa cookies)  
+✅ Chat estilo ChatGPT  
+✅ Treinos personalizados  
+✅ Botão **Salvar treino recomendado**  
+✅ Página **Treinos Recomendados em Tabela**
+
+---
+
+# 📂 11. Estrutura Atual do Projeto
 
 ```
 instructor_workout/
-│
 ├── data/
-│   ├── silver/
-│   └── bronze/
+│   ├── bronze/
+│   └── silver/
 │
-├── src/
-│   └── instructor_workout/
-│       ├── etl/
-│       │   ├── ingestion/
-│       │   │   └── hevy_ingest_incremental_minio.py
-│       │   ├── processing/
-│       │   │   └── upload_silver_to_minio.py
-│       │   ├── spark_session.py
-│       │   └── schema.py
-│       └── observability/
+├── src/instructor_workout/
+│   ├── etl/
+│   │   ├── ingestion/
+│   │   │   ├── kaggle_ingest_minio.py
+│   │   │   └── minio_client.py
+│   │   ├── processing/
+│   │   │   ├── gym_exercises_bronze_to_silver.py
+│   │   │   ├── gym_exercises_gold_full.py
+│   │   │   └── upload_silver_to_minio.py
+│   ├── streamlit_app/
+│   │   └── main.py
+│   └── observability/
 │
-├── tests/
+├── tools/
+│   └── minio.exe
 │
-├── README.md
-└── pyproject.toml
+├── pyproject.toml
+└── README.md
 ```
 
 ---
 
-# 🤝 10. Como contribuir
+# 🏁 12. Status Atual do Projeto
+
+✅ Pipeline Bronze rodando  
+✅ Silver funcionando  
+✅ Gold consolidado  
+✅ Streamlit funcionando  
+✅ IA conectada ao Groq  
+✅ Salvamento de treinos funcionando  
+✅ Persistência via cookies funcionando
+
+---
+
+# 🤝 13. Como Contribuir
 
 1. Criar branch:
-```
+```bash
 git checkout -b feat/seu_nome
 ```
 
-2. Commits pequenos e descritivos  
-3. Abrir PR para main  
-4. Seguir princípios:
-   - Modulação  
-   - Logs claros  
-   - Idempotência  
-   - Respeitar o padrão Bronze → Silver → Gold  
+2. Commits pequenos  
+3. Abrir PR  
+4. Seguir padrão Bronze → Silver → Gold
 
 ---
 
-# 🏁 11. Conclusão
+# 🏆 14. Conclusão
 
-O projeto demonstra como unir **engenharia de dados, bronze/silver/gold, processamento distribuído, API real e ML** para criar uma plataforma robusta e moderna de treinos personalizados.
+Este projeto hoje já entrega:
 
-O ambiente está pronto para que qualquer colega rode tudo em minutos.
+✅ Engenharia de Dados completa  
+✅ Personal Trainer com IA  
+✅ Projeto pronto para escalar para:
+- Banco de dados
+- Autenticação
+- ML real
+- App Mobile
+
+🚀 Projeto já está em nível de **portfólio avançado em Data + AI**.

@@ -1,0 +1,77 @@
+version: 2
+
+sources:
+  - name: gold
+    description: Camada GOLD com dados finais de exercícios
+    tables:
+
+      - name: exercises_dim
+        description: Dimensão de exercícios
+        columns:
+          - name: exercise_id
+            data_type: string
+            description: Identificador único do exercício
+
+          - name: exercise_name
+            data_type: string
+            description: Nome do exercício
+
+          - name: equipment
+            data_type: string
+            description: Equipamento necessário
+
+          - name: variation
+            data_type: string
+            description: Variação do exercício
+
+          - name: utility
+            data_type: string
+            description: Finalidade do exercício
+
+          - name: mechanics
+            data_type: string
+            description: Tipo de mecânica aplicada
+
+          - name: force
+            data_type: string
+            description: Tipo de força aplicada
+
+          - name: main_muscle
+            data_type: string
+            description: Músculo principal trabalhado
+
+          - name: difficulty_(1_5)
+            data_type: integer
+            description: Nível de dificuldade de 1 a 5
+
+
+      - name: muscles_bridge
+        description: Tabela de relacionamento entre exercícios e músculos
+        columns:
+          - name: exercise_id
+            data_type: string
+            description: Identificador do exercício
+
+          - name: muscle
+            data_type: string
+            description: Nome do músculo
+
+          - name: muscle_type
+            data_type: string
+            description: Tipo do músculo (principal ou secundário)
+
+
+      - name: instructions_bridge
+        description: Passo a passo dos exercícios
+        columns:
+          - name: exercise_id
+            data_type: string
+            description: Identificador do exercício
+
+          - name: step_number
+            data_type: integer
+            description: Número da etapa do movimento
+
+          - name: instruction
+            data_type: string
+            description: Descrição do passo do exercício

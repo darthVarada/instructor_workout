@@ -1,0 +1,71 @@
+version: 2
+
+models:
+  - name: exercises_dim
+    description: "Dimensão de exercícios físicos"
+    columns:
+      - name: exercise_id
+        description: "Identificador único do exercício"
+        data_type: varchar
+
+      - name: exercise_name
+        description: "Nome do exercício"
+        data_type: varchar
+
+      - name: equipment
+        description: "Equipamento utilizado"
+        data_type: varchar
+
+      - name: variation
+        description: "Variação do exercício"
+        data_type: varchar
+
+      - name: utility
+        description: "Finalidade do exercício"
+        data_type: varchar
+
+      - name: mechanics
+        description: "Mecânica do movimento"
+        data_type: varchar
+
+      - name: force
+        description: "Tipo de força aplicada"
+        data_type: varchar
+
+      - name: main_muscle
+        description: "Músculo principal ativado"
+        data_type: varchar
+
+      - name: difficulty_(1_5)
+        description: "Nível de dificuldade de 1 a 5"
+        data_type: integer
+
+  - name: muscles_bridge
+    description: "Tabela de ligação entre exercícios e músculos"
+    columns:
+      - name: exercise_id
+        description: "ID do exercício"
+        data_type: varchar
+
+      - name: muscle
+        description: "Nome do músculo"
+        data_type: varchar
+
+      - name: muscle_type
+        description: "Tipo do músculo (main, secondary, stabilizer)"
+        data_type: varchar
+
+  - name: instructions_bridge
+    description: "Instruções passo a passo dos exercícios"
+    columns:
+      - name: exercise_id
+        description: "ID do exercício"
+        data_type: varchar
+
+      - name: step_number
+        description: "Ordem do passo"
+        data_type: integer
+
+      - name: instruction
+        description: "Descrição da instrução"
+        data_type: varchar

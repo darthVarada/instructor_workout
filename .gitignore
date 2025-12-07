@@ -220,3 +220,8 @@ __marimo__/
 .streamlit/secrets.toml
 
 *.csv
+
+airflow/logs/
+src/instructor_workout/etl/AWS Scripts/credential.py
+*.env
+.env

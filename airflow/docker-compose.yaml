@@ -1,0 +1,129 @@
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: airflow_postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+
+  # 🔥 Serviço de Logs do Airflow
+  airflow_logserver:
+    image: apache/airflow:2.7.1-python3.10
+    container_name: airflow_logserver
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__LOGGING__LOGGING_LEVEL: "INFO"
+      PYTHONPATH: "/opt/airflow/src"
+      ENV_FILE_PATH: "/opt/airflow/.env"
+
+      # ⭐ Variáveis AWS na MESMA convenção que seu código exige
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_DEFAULT_REGION}
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+      - ./logs:/opt/airflow/logs
+      - ./requirements.txt:/requirements.txt
+      - ../src:/opt/airflow/src
+      - ../data:/opt/airflow/../data      # ⭐ NECESSÁRIO P/ users_form
+
+    command: >
+      bash -c "
+        pip install --no-cache-dir -r /requirements.txt &&
+        airflow serve-logs
+      "
+
+
+  airflow_webserver:
+    image: apache/airflow:2.7.1-python3.10
+    container_name: airflow_webserver
+    depends_on:
+      - postgres
+      - airflow_logserver
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__RBAC: "true"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__LOGGING__BASE_LOG_FOLDER: "/opt/airflow/logs"
+      AIRFLOW__LOGGING__REMOTE_LOGGING: "false"
+
+      PYTHONPATH: "/opt/airflow/src"
+      ENV_FILE_PATH: "/opt/airflow/.env"
+
+      # ⭐ AWS — Nomes EXATOS que seu código usa
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_DEFAULT_REGION}
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+      - ./logs:/opt/airflow/logs
+      - ./requirements.txt:/requirements.txt
+      - ../src:/opt/airflow/src
+      - ../data:/opt/airflow/../data      # ⭐ USERS FORM NECESSÁRIO
+
+    ports:
+      - "8080:8080"
+
+    command: >
+      bash -c "
+        pip install --no-cache-dir -r /requirements.txt &&
+        airflow db init &&
+        airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true &&
+        airflow webserver
+      "
+
+
+  airflow_scheduler:
+    image: apache/airflow:2.7.1-python3.10
+    container_name: airflow_scheduler
+    depends_on:
+      - airflow_webserver
+      - postgres
+      - airflow_logserver
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__LOGGING__BASE_LOG_FOLDER: "/opt/airflow/logs"
+      AIRFLOW__LOGGING__REMOTE_LOGGING: "false"
+
+      PYTHONPATH: "/opt/airflow/src"
+      ENV_FILE_PATH: "/opt/airflow/.env"
+
+      # ⭐ AWS — Nomes EXATOS que seu código usa
+      AWS_ACCESS_KEY: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_DEFAULT_REGION}
+
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+      - ./logs:/opt/airflow/logs
+      - ./requirements.txt:/requirements.txt
+      - ../src:/opt/airflow/src
+      - ../data:/opt/airflow/../data      # ⭐ USERS FORM PRECISA DISSO
+
+    command: >
+      bash -c "
+        pip install --no-cache-dir -r /requirements.txt &&
+        airflow scheduler
+      "
+
+
+volumes:
+  postgres_data:

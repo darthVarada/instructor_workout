@@ -22,24 +22,37 @@ Este projeto integra:
 📁 **Estrutura Geral do Projeto**
 =================================
 
-instructor_workout/
+`instructor_workout/
+│
 ├── airflow/
-├── src/
-│   └── instructor_workout/
-│       ├── etl/
-│       │   └── ingestion/
-│       │       └── generate_fake_test_data.py
-│       ├── streamlit_app/
-│       │   ├── main.py
-│       │   ├── chat.py
-│       │   ├── dashboard.py
-│       │   ├── groq_service.py
-│       │   ├── login_service.py
-│       │   ├── formulario.py
-│       │   ├── s3_utils.py
-│       │   └── .streamlit/secrets.toml
-└── README.md
-
+│   ├── dags/
+│   │   └── instructor_workout_pipeline.py
+│   ├── scripts/
+│   │   ├── ingest_synthetic_base_to_bronze.py
+│   │   ├── hevy_ingest_incremental_s3.py
+│   │   ├── silver_kaggle_transform.py
+│   │   ├── silver_users_transform.py
+│   │   └── gold_metrics.py
+│   ├── .env
+│   └── docker-compose.yml
+│
+├── src/instructor_workout/
+│   ├── streamlit_app/
+│   │   ├── main.py
+│   │   ├── login_service.py
+│   │   ├── formulario.py
+│   │   ├── chat.py
+│   │   ├── dashboard.py
+│   │   ├── groq_service.py
+│   │   └── s3_utils.py
+│   │
+│   ├── etl/
+│   │   └── ingestion/
+│   │       ├── generate_fake_test_data.py
+│   │       └── (outros scripts)
+│
+├── README.md
+└── requirements.txt`
 
 * * * * *
 
@@ -90,13 +103,12 @@ Criar:
 
 Conteúdo:
 
-AWS_ACCESS_KEY="SUA_KEY"
+`AWS_ACCESS_KEY="SUA_KEY"
 AWS_SECRET_KEY="SUA_SECRET"
 AWS_REGION="sa-east-1"
 
 GROQ_API_KEY="SUA_GROQ_KEY"
-BUCKET_NAME="instructor-workout-datas"
-
+BUCKET_NAME="instructor-workout-datas"`
 
 * * * * *
 
@@ -171,9 +183,9 @@ Rodar:
 
 Acessar:
 
-http://localhost:8080
+`http://localhost:8080
 login: admin
-senha: admin
+senha: admin`
 
 * * * * *
 
@@ -186,10 +198,10 @@ Arquivo:
 
 Exemplo:
 
-AWS_ACCESS_KEY_ID=SEU_ACESSO
+`AWS_ACCESS_KEY_ID=SEU_ACESSO
 AWS_SECRET_ACCESS_KEY=SUA_SECRET
 AWS_DEFAULT_REGION=sa-east-1
-BUCKET_NAME=instructor-workout-datas
+BUCKET_NAME=instructor-workout-datas`
 
 * * * * *
 
@@ -246,8 +258,8 @@ E o app consegue carregar automaticamente.
 
 Usuário:
 
-email: testuser@example.com
-senha: 123456
+`email: testuser@example.com
+senha: 123456`
 
 Esse usuário já possui treinos fake em:
 
@@ -260,9 +272,9 @@ E aparece no dashboard.
 👨‍💻 **11\. COMO ATUALIZAR E SUBIR PARA O GITHUB**
 ===================================================
 
-git add .
+`git add .
 git commit -m "Atualização completa do projeto"
-git push origin sua-branch
+git push origin sua-branch`
 
 * * * * *
 

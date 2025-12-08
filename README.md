@@ -1,318 +1,303 @@
-# 🏋️‍♂️ Instructor Workout — Plataforma Inteligente de Treinos com IA
+🏋️ **Instructor Workout -- Full Data & AI Pipeline + Streamlit App**
+====================================================================
 
-Uma plataforma completa de **engenharia de dados + personal trainer com IA + recomendação de treinos**, utilizando **MinIO, arquitetura Bronze/Silver/Gold, Streamlit e Groq LLM**.
+Este projeto integra:
 
----
+-   **Pipeline de dados completo (Ingestão → Bronze → Silver → Gold)**
 
-## 👥 Integrantes
+-   **Airflow orquestrando todos os ETLs**
 
-- **Davi Sasso**  
-- **Rodrigo Alex**  
-- **Victor Barradas**
+-   **Dashboard analítico**
 
----
+-   **Integração com API Hevy**
 
-# 🎯 1. Visão Geral Atualizada
+-   **App Streamlit com login, formulário, chat IA e dashboard**
 
-Este projeto implementa:
+-   **Armazenamento em S3**
 
-✅ Arquitetura **Medallion (Bronze → Silver → Gold)**  
-✅ Ingestão via **API (Kaggle / Hevy / CSVs)**  
-✅ Armazenamento no **MinIO (S3 local)**  
-✅ Processamento com **Python + Pandas**  
-✅ Camada **Gold analítica**  
-✅ **Aplicação Streamlit** com:
-- Cadastro de perfil
-- Atualização de perfil
-- Exclusão de perfil (cookies)
-- Chat com **Personal Trainer IA (Groq)**
-- Salvamento de treinos recomendados
-- Página de **Treinos Recomendados em tabela**
+-   **Geração de dados fake realistas para testes**
 
----
+* * * * *
 
-# 🧩 2. Problema de Negócio
+📁 **Estrutura Geral do Projeto**
+=================================
 
-Aplicativos de treino oferecem recomendações genéricas.
-
-Nosso objetivo é:
-
-✅ Criar um **personal trainer virtual**  
-✅ Integrar **dados reais + IA**  
-✅ Gerar **treinos personalizados** com base no perfil do usuário  
-✅ Persistência via **cookies (sem banco por enquanto)**
-
----
-
-# 🏗️ 3. Arquitetura da Solução
-
-## 🥉 Bronze
-
-- Dados brutos da Kaggle / Hevy
-- JSON / CSV
-- Armazenados no MinIO
-
-```
-s3://bronze/
-```
-
----
-
-## 🥈 Silver
-
-- Dados tratados
-- Limpeza de campos
-- Normalização
-- CSV e Parquet
-
-```
-s3://silver/
-```
-
----
-
-## 🥇 Gold
-
-- Tabelas analíticas:
-
-| Tabela | Descrição |
-|--------|-----------|
-| exercises_dim | Exercícios principais |
-| muscles_bridge | Exercício x músculos |
-| instructions_bridge | Execução e preparação dos exercícios |
-
-```
-s3://gold/
-```
-
----
-
-## 🤖 IA
-
-- Modelo Groq:  
-```
-llama-3.1-8b-instant
-```
-
-- Prompt estruturado como:
-
-✅ Grupo 1 / 2 / 3  
-✅ Exercício  
-✅ Séries  
-✅ Repetições  
-✅ Dicas adicionais
-
----
-
-## 🖥️ Interface
-
-Criada em **Streamlit** com 3 telas principais:
-
-✅ Chat  
-✅ Treinos Recomendados (tabela)  
-✅ Atualizar Perfil  
-
-Cadastro inicial obrigatório.
-
----
-
-# 🛠️ 4. Tecnologias Utilizadas
-
-| Tecnologia | Uso |
-|-----------|-----|
-| Python 3.12 | Backend |
-| uv | Gerenciador de ambiente |
-| Pandas | Processamento Silver/Gold |
-| MinIO | Data Lake |
-| Groq API | Personal Trainer IA |
-| Streamlit | Interface |
-| Cookies Manager | Persistência do usuário |
-
----
-
-# 🚀 5. Como Rodar o Projeto
-
----
-
-## 📦 5.1 Instalar dependências
-
-```powershell
-pip install uv
-uv sync
-```
-
----
-
-## 🪣 5.2 Rodar o MinIO (Windows)
-
-No seu projeto já existe:
-
-```
-tools/minio.exe
-```
-
-Rode assim:
-
-```powershell
-cd tools
-.\\minio.exe server C:\\minio\\data --console-address ":9001"
-```
-
-Acessos:
-- Console: http://localhost:9001  
-- API S3: http://localhost:9000
-
-Login padrão:
-```
-minioadmin / minioadmin
-```
-
----
-
-## 🪣 5.3 Criar Buckets
-
-Crie no painel do MinIO:
-
-```
-bronze
-silver
-gold
-```
-
----
-
-## 🔐 5.4 Variáveis de Ambiente
-
-```powershell
-setx GROQ_API_KEY "SUA_CHAVE_GROQ"
-
-setx S3_ENDPOINT_URL "http://localhost:9000"
-setx MINIO_ACCESS_KEY "minioadmin"
-setx MINIO_SECRET_KEY "minioadmin"
-
-setx MINIO_BRONZE_BUCKET "bronze"
-setx MINIO_SILVER_BUCKET "silver"
-setx MINIO_GOLD_BUCKET   "gold"
-```
-
----
-
-# 🥉 6. Ingestão Bronze
-
-```powershell
-uv run python src/instructor_workout/etl/ingestion/kaggle_ingest_minio.py
-```
-
----
-
-# 🥈 7. Bronze → Silver
-
-```powershell
-uv run python src/instructor_workout/etl/processing/gym_exercises_bronze_to_silver.py
-```
-
----
-
-# 🥇 8. Silver → Gold
-
-```powershell
-uv run python src/instructor_workout/etl/processing/gym_exercises_gold_full.py
-```
-
----
-
-# 🖥️ 9. Rodar o App Streamlit
-
-```powershell
-uv run streamlit run src/instructor_workout/streamlit_app/main.py
-```
-
-Acesse:
-
-```
-http://localhost:8501
-```
-
----
-
-# 🧑‍💻 10. Funcionalidades do App
-
-✅ Cadastro inicial obrigatório  
-✅ Persistência via cookies  
-✅ Atualizar dados do usuário  
-✅ Excluir perfil (limpa cookies)  
-✅ Chat estilo ChatGPT  
-✅ Treinos personalizados  
-✅ Botão **Salvar treino recomendado**  
-✅ Página **Treinos Recomendados em Tabela**
-
----
-
-# 📂 11. Estrutura Atual do Projeto
-
-```
-instructor_workout/
-├── data/
-│   ├── bronze/
-│   └── silver/
+`instructor_workout/
+│
+├── airflow/
+│   ├── dags/
+│   │   └── instructor_workout_pipeline.py
+│   ├── scripts/
+│   │   ├── ingest_synthetic_base_to_bronze.py
+│   │   ├── hevy_ingest_incremental_s3.py
+│   │   ├── silver_kaggle_transform.py
+│   │   ├── silver_users_transform.py
+│   │   └── gold_metrics.py
+│   ├── .env
+│   └── docker-compose.yml
 │
 ├── src/instructor_workout/
-│   ├── etl/
-│   │   ├── ingestion/
-│   │   │   ├── kaggle_ingest_minio.py
-│   │   │   └── minio_client.py
-│   │   ├── processing/
-│   │   │   ├── gym_exercises_bronze_to_silver.py
-│   │   │   ├── gym_exercises_gold_full.py
-│   │   │   └── upload_silver_to_minio.py
 │   ├── streamlit_app/
-│   │   └── main.py
-│   └── observability/
+│   │   ├── main.py
+│   │   ├── login_service.py
+│   │   ├── formulario.py
+│   │   ├── chat.py
+│   │   ├── dashboard.py
+│   │   ├── groq_service.py
+│   │   └── s3_utils.py
+│   │
+│   ├── etl/
+│   │   └── ingestion/
+│   │       ├── generate_fake_test_data.py
+│   │       └── (outros scripts)
 │
-├── tools/
-│   └── minio.exe
-│
-├── pyproject.toml
-└── README.md
-```
+├── README.md
+└── requirements.txt`
 
----
+* * * * *
 
-# 🏁 12. Status Atual do Projeto
+⚙️ **1\. REQUISITOS DO PROJETO**
+================================
 
-✅ Pipeline Bronze rodando  
-✅ Silver funcionando  
-✅ Gold consolidado  
-✅ Streamlit funcionando  
-✅ IA conectada ao Groq  
-✅ Salvamento de treinos funcionando  
-✅ Persistência via cookies funcionando
+### ✔ Python 3.12+
 
----
+### ✔ Docker + Docker Compose
 
-# 🤝 13. Como Contribuir
+### ✔ AWS CLI configurado
 
-1. Criar branch:
-```bash
-git checkout -b feat/seu_nome
-```
+### ✔ Conta S3 ativa
 
-2. Commits pequenos  
-3. Abrir PR  
-4. Seguir padrão Bronze → Silver → Gold
+### ✔ GROQ API KEY
 
----
+* * * * *
 
-# 🏆 14. Conclusão
+📦 **2\. INSTALAÇÃO DO AMBIENTE LOCAL**
+=======================================
 
-Este projeto hoje já entrega:
+### 📌 Criar ambiente virtual
 
-✅ Engenharia de Dados completa  
-✅ Personal Trainer com IA  
-✅ Projeto pronto para escalar para:
-- Banco de dados
-- Autenticação
-- ML real
-- App Mobile
+`python -m venv .venv`
 
-🚀 Projeto já está em nível de **portfólio avançado em Data + AI**.
+### 📌 Ativar ambiente
+
+Windows:
+
+`.\.venv\Scripts\activate`
+
+Mac/Linux:
+
+`source .venv/bin/activate`
+
+### 📌 Instalar dependências
+
+`pip install -r requirements.txt`
+
+* * * * *
+
+🔐 **3\. CONFIGURAÇÃO DO STREAMLIT**
+====================================
+
+Criar:
+
+`src/instructor_workout/streamlit_app/.streamlit/secrets.toml`
+
+Conteúdo:
+
+`AWS_ACCESS_KEY="SUA_KEY"
+AWS_SECRET_KEY="SUA_SECRET"
+AWS_REGION="sa-east-1"
+
+GROQ_API_KEY="SUA_GROQ_KEY"
+BUCKET_NAME="instructor-workout-datas"`
+
+* * * * *
+
+🌐 **4\. COMO RODAR O STREAMLIT**
+=================================
+
+No diretório:
+
+`src/instructor_workout/streamlit_app`
+
+Rodar:
+
+`streamlit run main.py`
+
+O app abre em:
+
+`http://localhost:8501`
+
+* * * * *
+
+🧠 **5\. FUNCIONALIDADES DO STREAMLIT APP**
+===========================================
+
+### 🔒 Tela de Login
+
+-   Usuário e senha armazenados em S3 (`users_app.parquet`)
+
+### 📝 Formulário do Usuário
+
+-   Dados completos para personalização do treino
+
+-   Salvo em `s3://.../user_profiles/`
+
+### 💬 Chat com IA (Personal Trainer)
+
+-   Modelo GROQ LLaMA 3.1
+
+-   Uso de contexto do perfil
+
+-   Histórico da conversa
+
+-   IA gera treinos personalizados
+
+### 📊 Dashboard
+
+-   Evolução por exercícios
+
+-   Progressão por carga / volume
+
+-   Resumo semanal / mensal
+
+-   Análise comparativa com média global
+
+-   Funciona com:
+
+    -   Gold real (API Hevy)
+
+    -   Test dataset artificial
+
+* * * * *
+
+🛠️ **6\. CONFIGURAÇÃO DO AIRFLOW**
+===================================
+
+No diretório:
+
+`instructor_workout/airflow`
+
+Rodar:
+
+`docker compose up -d`
+
+Acessar:
+
+`http://localhost:8080
+login: admin
+senha: admin`
+
+* * * * *
+
+🗄️ **7\. VARIÁVEIS DO .env DO AIRFLOW**
+========================================
+
+Arquivo:
+
+`airflow/.env`
+
+Exemplo:
+
+`AWS_ACCESS_KEY_ID=SEU_ACESSO
+AWS_SECRET_ACCESS_KEY=SUA_SECRET
+AWS_DEFAULT_REGION=sa-east-1
+BUCKET_NAME=instructor-workout-datas`
+
+* * * * *
+
+🚀 **8\. PIPELINE DO AIRFLOW**
+==============================
+
+### **Bronze**
+
+-   Captura dados brutos
+
+-   API HEVY
+
+-   Kaggle
+
+-   Campos sem tratamento
+
+### **Silver**
+
+-   Padronização
+
+-   Normalização
+
+-   Tipagem
+
+-   Limpeza
+
+### **Gold**
+
+-   Métricas consolidadas
+
+-   Fatos + dimensões
+
+-   Pronto para dashboards
+
+* * * * *
+
+🧪 **9\. DADOS DE TESTE (FAKE)**
+================================
+
+Script:
+
+`src/instructor_workout/etl/ingestion/generate_fake_test_data.py`
+
+Gera:
+
+`test/fact_workouts_test_user.parquet`
+
+E o app consegue carregar automaticamente.
+
+* * * * *
+
+👤 **10\. USUÁRIO FAKE PARA TESTE**
+===================================
+
+Usuário:
+
+`email: testuser@example.com
+senha: 123456`
+
+Esse usuário já possui treinos fake em:
+
+`s3://instructor-workout-datas/test/fact_workouts_test_user.parquet`
+
+E aparece no dashboard.
+
+* * * * *
+
+👨‍💻 **11\. COMO ATUALIZAR E SUBIR PARA O GITHUB**
+===================================================
+
+`git add .
+git commit -m "Atualização completa do projeto"
+git push origin sua-branch`
+
+* * * * *
+
+🛠 **12\. TROUBLESHOOTING**
+===========================
+
+### ❗ S3 Access Denied
+
+→ Verificar keys no `secrets.toml` e `.env`
+
+### ❗ Streamlit não encontra dados
+
+→ Checar:
+
+`test/fact_workouts_test_user.parquet`
+
+### ❗ Airflow não sobe
+
+→ Tentar:
+
+`docker compose down
+docker compose up --build -d`
+
+### ❗ Login não funciona
+
+→ Rodar script `generate_fake_test_data.py` novamente

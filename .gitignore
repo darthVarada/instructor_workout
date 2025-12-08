@@ -225,3 +225,7 @@ airflow/logs/
 src/instructor_workout/etl/AWS Scripts/credential.py
 *.env
 .env
+
+src/instructor_workout/streamlit_app/.streamlit/
+src/instructor_workout/streamlit_app/.pages/
+*.parquet

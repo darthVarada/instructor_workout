@@ -1,65 +1,91 @@
-import io
-from typing import Optional
-
 import boto3
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
+from io import BytesIO
 import streamlit as st
+import os
+
+# ============================================================
+# GET CREDENTIALS (STREAMLIT OR ENVIRONMENT)
+# ============================================================
+def get_credentials():
+    """
+    Usa st.secrets quando possível (Streamlit).
+    Caso contrário usa variáveis de ambiente (FastAPI, scripts).
+    """
+    if hasattr(st, "secrets") and "AWS_ACCESS_KEY" in st.secrets:
+        return {
+            "aws_access_key_id": st.secrets["AWS_ACCESS_KEY"],
+            "aws_secret_access_key": st.secrets["AWS_SECRET_KEY"],
+            "region_name": st.secrets.get("AWS_REGION", "sa-east-1"),
+        }
+
+    # fallback para API FastAPI
+    return {
+        "aws_access_key_id": os.getenv("AWS_ACCESS_KEY"),
+        "aws_secret_access_key": os.getenv("AWS_SECRET_KEY"),
+        "region_name": os.getenv("AWS_REGION", "sa-east-1"),
+    }
 
 
+# ============================================================
+# CREATE S3 CLIENT
+# ============================================================
 def get_s3():
-    """
-    Cria cliente S3 usando credenciais do secrets.toml
-    """
+    creds = get_credentials()
+
+    if not creds["aws_access_key_id"]:
+        raise ValueError("❌ Nenhuma credencial AWS encontrada para S3.")
+
     return boto3.client(
         "s3",
-        aws_access_key_id=st.secrets["AWS_ACCESS_KEY"],
-        aws_secret_access_key=st.secrets["AWS_SECRET_KEY"],
-        region_name=st.secrets["AWS_REGION"],
+        aws_access_key_id=creds["aws_access_key_id"],
+        aws_secret_access_key=creds["aws_secret_access_key"],
+        region_name=creds["region_name"],
     )
 
 
-def read_parquet_folder(bucket: str, prefix: str) -> pd.DataFrame:
-    """
-    Lê todos os arquivos Parquet de um prefix no S3 e concatena em um DataFrame.
-    Se não houver arquivos, retorna DataFrame vazio.
-    """
+# ============================================================
+# READ PARQUET FOLDER
+# ============================================================
+def read_parquet_folder(bucket, prefix):
     s3 = get_s3()
-    resp = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+    objs = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
 
-    if "Contents" not in resp:
+    if "Contents" not in objs:
         return pd.DataFrame()
 
     dfs = []
-    for obj in resp["Contents"]:
-        key = obj["Key"]
-        if not key.endswith(".parquet"):
-            continue
-        body = s3.get_object(Bucket=bucket, Key=key)["Body"].read()
-        df = pd.read_parquet(io.BytesIO(body))
-        dfs.append(df)
+    for obj in objs["Contents"]:
+        if obj["Key"].endswith(".parquet"):
+            data = s3.get_object(Bucket=bucket, Key=obj["Key"])["Body"].read()
+            dfs.append(pd.read_parquet(BytesIO(data)))
 
-    if not dfs:
-        return pd.DataFrame()
-
-    return pd.concat(dfs, ignore_index=True)
+    return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
 
 
-def write_parquet(df: pd.DataFrame, bucket: str, key: str) -> None:
-    """
-    Escreve um DataFrame como Parquet no S3.
-    """
+# ============================================================
+# WRITE PARQUET
+# ============================================================
+def write_parquet(df, bucket, key):
+    s3 = get_s3()
+    buffer = BytesIO()
+    df.to_parquet(buffer, index=False)
+    buffer.seek(0)
+
+    s3.put_object(Bucket=bucket, Key=key, Body=buffer.getvalue())
+
+
+# ============================================================
+# APPEND PARQUET (INCREMENTAL)
+# ============================================================
+def append_parquet(df, bucket, key):
     s3 = get_s3()
 
-    table = pa.Table.from_pandas(df)
-    buf = io.BytesIO()
-    pq.write_table(table, buf)
-    buf.seek(0)
+    try:
+        obj = s3.get_object(Bucket=bucket, Key=key)
+        existing = pd.read_parquet(BytesIO(obj["Body"].read()))
+        final_df = pd.concat([existing, df], ignore_index=True)
+    except:
+        final_df = df
 
-    s3.put_object(
-        Bucket=bucket,
-        Key=key,
-        Body=buf.getvalue(),
-        ContentType="application/octet-stream",
-    )
+    write_parquet(final_df, bucket, key)

@@ -2,7 +2,7 @@ import streamlit as st
 from datetime import datetime, date
 from typing import Dict, Any
 
-from login_service import save_user_profile
+from login_service import save_user_profile, get_user_profile_by_id
 
 
 def render(profile: Dict[str, Any]):
@@ -12,19 +12,71 @@ def render(profile: Dict[str, Any]):
         st.error("Erro: nenhum perfil carregado.")
         return
 
+    # ============================================================
+    # GARANTE QUE user_id SEMPRE ESTEJA DISPONÍVEL
+    # ============================================================
+    if "user_id" not in profile or not profile["user_id"]:
+        profile["user_id"] = st.session_state.get("user_profile", {}).get("user_id", "")
+
+    st.markdown(f"**🆔 User ID carregado:** `{profile.get('user_id', '')}`")
+
+    # ============================================================
+    # FUNÇÃO SEGURA PARA PEGAR CAMPOS
+    # ============================================================
     def safe_get(key: str, default=None):
         value = profile.get(key, default)
         return default if value is None else value
 
-    # Data de nascimento com fallback
+    # ============================================================
+    # CAMPO PARA CARREGAR PERFIL DIRETAMENTE DO GOLD/dim_user
+    # ============================================================
+    st.markdown("### 🔍 Carregar dados do usuário (GOLD)")
+
+    manual_user_id = st.text_input(
+        "User ID (para buscar no GOLD)",
+        value=profile.get("user_id", ""),
+        key="manual_user_id_input",
+    )
+
+    if st.button("📥 Carregar dados do GOLD"):
+        if not manual_user_id:
+            st.error("Digite um User ID válido.")
+        else:
+            print(f"🔎 [DEBUG] Botão 'Carregar dados do GOLD' clicado com user_id={manual_user_id}")
+            loaded = get_user_profile_by_id(manual_user_id)
+
+            if loaded:
+                st.success("Dados carregados com sucesso do GOLD!")
+
+                # Atualiza perfil local
+                st.session_state.user_profile = loaded
+
+                # Atualiza o objeto atual para preencher campos
+                profile.clear()
+                profile.update(loaded)
+
+                st.rerun()
+            else:
+                st.error("Nenhum registro encontrado no GOLD para esse User ID.")
+
+    st.markdown("---")
+
+    # ============================================================
+    # TRATAMENTO DA DATA DE NASCIMENTO
+    # ============================================================
     if safe_get("data_nascimento"):
         try:
-            data_nasc = datetime.strptime(str(safe_get("data_nascimento")), "%Y-%m-%d").date()
+            data_nasc = datetime.strptime(
+                str(safe_get("data_nascimento")), "%Y-%m-%d"
+            ).date()
         except Exception:
             data_nasc = date.today()
     else:
         data_nasc = date.today()
 
+    # ============================================================
+    # FORMULÁRIO PRINCIPAL
+    # ============================================================
     with st.form("form_profile"):
         nome = st.text_input("Nome completo", value=safe_get("nome", ""))
 
@@ -89,6 +141,9 @@ def render(profile: Dict[str, Any]):
 
         submitted = st.form_submit_button("Salvar informações")
 
+    # ============================================================
+    # SALVA NO GOLD + BRONZE AO CLICAR EM SALVAR
+    # ============================================================
     if submitted:
         updated_profile = {
             **profile,

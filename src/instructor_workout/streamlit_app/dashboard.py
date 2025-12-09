@@ -12,6 +12,7 @@ import streamlit as st
 # =========================
 BUCKET = "instructor-workout-datas"
 TEST_KEY = "test/fact_workouts/fact_workouts_test.parquet"
+TEST_USER_ID = "test_user_001"      # 🔥 usado para isolar usuários
 
 
 # =========================
@@ -43,7 +44,7 @@ def read_test_workouts():
 
         # Garante que a coluna date é datetime
         if "date" in df.columns:
-            df["date"] = pd.to_datetime(df["date"]).dt.date
+            df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date
 
         return df
     except Exception as e:
@@ -69,35 +70,68 @@ def render(user: dict | None):
         st.code("python src/instructor_workout/etl/ingestion/generate_fake_test_data.py")
         return
 
-    # Filtra por usuário se possível
+    # =========================
+    # OBTÉM USER ID DO PERFIL
+    # =========================
     user_id = None
     if isinstance(user, dict):
         user_id = user.get("user_id") or user.get("id")
 
-    if user_id and "user_id" in df.columns:
+    # =========================
+    # FILTRO POR USUÁRIO
+    # =========================
+
+    # 🔥 1. Verifica se é o usuário oficial de teste
+    if user and user.get("email") == "testuser@example.com":
+        user_id = TEST_USER_ID
+    else:
+        user_id = user.get("user_id") if user else None
+
+    # 🔥 2. Agora aplica a lógica correta
+    if user_id == TEST_USER_ID:
+        # usuário de teste → mostra dataset fake inteiro
+        user_df = df.copy()
+    else:
+        # usuário real → só mostra dados reais
         user_df = df[df["user_id"] == user_id].copy()
         if user_df.empty:
-            st.warning(
-                "Não encontrei treinos para o seu usuário nos dados de TEST. "
-                "Mostrando métricas gerais de todos os treinos."
-            )
-            user_df = df.copy()
+            st.warning("📭 Você ainda não possui treinos registrados no sistema real.")
+            return
+
+
+    # =========================
+    # CLEANUP
+    # =========================
+    if "date" in user_df.columns:
+        user_df["date"] = pd.to_datetime(user_df["date"], errors="coerce")
+        user_df = user_df.dropna(subset=["date"])
     else:
-        user_df = df.copy()
+        st.error("Dataset de teste não possui coluna 'date'.")
+        return
 
     # =========================
     # MÉTRICAS GERAIS
     # =========================
-    user_df["date"] = pd.to_datetime(user_df["date"])
-
     total_workouts = len(user_df)
     total_days = user_df["date"].dt.date.nunique()
-    last_workout = user_df["date"].max().date() if total_workouts > 0 else None
+    last_workout = (
+        user_df["date"].max().date() if total_workouts > 0 else None
+    )
 
-    avg_sets = round(user_df["total_sets"].mean(), 1) if "total_sets" in user_df.columns else None
-    avg_reps = round(user_df["total_reps"].mean(), 1) if "total_reps" in user_df.columns else None
+    avg_sets = (
+        round(user_df["total_sets"].mean(), 1)
+        if "total_sets" in user_df.columns
+        else None
+    )
+    avg_reps = (
+        round(user_df["total_reps"].mean(), 1)
+        if "total_reps" in user_df.columns
+        else None
+    )
     avg_duration = (
-        round(user_df["duration_min"].mean(), 1) if "duration_min" in user_df.columns else None
+        round(user_df["duration_min"].mean(), 1)
+        if "duration_min" in user_df.columns
+        else None
     )
 
     col1, col2, col3 = st.columns(3)
@@ -106,7 +140,10 @@ def render(user: dict | None):
     with col2:
         st.metric("Dias diferentes treinados", total_days)
     with col3:
-        st.metric("Último treino", last_workout.strftime("%d/%m/%Y") if last_workout else "-")
+        st.metric(
+            "Último treino",
+            last_workout.strftime("%d/%m/%Y") if last_workout else "-"
+        )
 
     col4, col5, col6 = st.columns(3)
     with col4:

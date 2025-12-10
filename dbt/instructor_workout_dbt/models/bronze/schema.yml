@@ -1,0 +1,281 @@
+version: 2
+
+models:
+  # -----------------------------------------------------------
+  # FORMULÁRIO DO USUÁRIO
+  # -----------------------------------------------------------
+  - name: stg_bronze_user_form_log
+    description: >
+      Respostas do formulário de onboarding dos usuários, incluindo
+      dados antropométricos, objetivo de treino e hábitos de sono/nutrição.
+      Uma linha por usuário por data_registro.
+    columns:
+      - name: user_id
+        description: "Identificador único do usuário (UUID)."
+        data_type: varchar
+        tests:
+          - not_null
+          - unique
+
+      - name: data_registro
+        description: "Data em que o formulário foi preenchido."
+        data_type: date
+        tests:
+          - not_null
+
+      - name: nome
+        description: "Nome do usuário."
+        data_type: varchar
+
+      - name: sexo
+        description: "Gênero do usuário (ex: 'M', 'F')."
+        data_type: varchar
+
+      - name: peso_kg
+        description: "Peso corporal do usuário em quilogramas."
+        data_type: double
+
+      - name: altura_m
+        description: "Altura do usuário em metros."
+        data_type: double
+
+      - name: bodyfat_perc
+        description: "Percentual de gordura corporal estimado ou informado."
+        data_type: double
+
+      - name: objetivo
+        description: "Objetivo principal de treino (ex: hipertrofia, emagrecimento)."
+        data_type: varchar
+
+      - name: nivel_treino
+        description: "Nível de experiência do usuário (iniciante, intermediário, avançado)."
+        data_type: varchar
+
+      - name: condicoes_fisicas
+        description: "Condições físicas e lesões reportadas (ex: dor lombar)."
+        data_type: varchar
+
+      - name: frequencia_semanal
+        description: "Número de dias de treino por semana pretendidos."
+        data_type: integer
+
+      - name: horas_sono
+        description: "Horas de sono médio por noite."
+        data_type: double
+
+      - name: nutricional_score
+        description: "Score qualitativo de hábitos nutricionais."
+        data_type: integer
+
+      - name: updated_at
+        description: "Data e hora da última atualização do registro no formulário."
+        data_type: timestamp
+
+  # -----------------------------------------------------------
+  # BASE DE SETS (SYNTHETIC REALISTIC WORKOUT BASE)
+  # -----------------------------------------------------------
+  - name: stg_bronze_base_full
+    description: >
+      Base de treinos sintéticos com nível de detalhe por set,
+      contendo carga, reps, distância e duração para cada exercício
+      dentro de um treino.
+    columns:
+      - name: user_id
+        description: "Identificador do usuário associado ao plano base."
+        data_type: varchar
+
+      - name: workout_title
+        description: "Nome do treino (ex: 'Treino de bíceps e tríceps')."
+        data_type: varchar
+
+      - name: exercise_title
+        description: "Nome do exercício executado no set."
+        data_type: varchar
+
+      - name: set_type
+        description: "Tipo de set (normal, aquecimento, etc.)."
+        data_type: varchar
+
+      - name: weight_kg
+        description: "Carga utilizada no set, em quilogramas."
+        data_type: double
+
+      - name: reps
+        description: "Número de repetições executadas no set."
+        data_type: integer
+
+      - name: distance_km
+        description: "Distância percorrida no set, em quilômetros (para exercícios cíclicos)."
+        data_type: double
+
+      - name: duration_seconds
+        description: "Duração do set em segundos."
+        data_type: integer
+
+      - name: rpe
+        description: "Rating of Perceived Exertion (esforço percebido) do set."
+        data_type: integer
+
+  # -----------------------------------------------------------
+  # SESSÕES DE TREINO DO USUÁRIO
+  # -----------------------------------------------------------
+  - name: stg_bronze_workouts
+    description: >
+      Sessões de treino realizadas pelos usuários, com um registro
+      por sessão, incluindo duração total e um campo JSON contendo
+      os sets detalhados.
+    columns:
+      - name: workout_id
+        description: "Identificador único da sessão de treino."
+        data_type: varchar
+        tests:
+          - not_null
+          - unique
+
+      - name: user_id
+        description: "Identificador do usuário que realizou a sessão."
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bronze_user_form_log')
+              field: user_id
+
+      - name: workout_date
+        description: "Data em que a sessão foi realizada."
+        data_type: date
+
+      - name: started_at
+        description: "Timestamp de início da sessão."
+        data_type: timestamp
+
+      - name: ended_at
+        description: "Timestamp de fim da sessão."
+        data_type: timestamp
+
+      - name: duration_seconds
+        description: "Duração total do treino em segundos."
+        data_type: integer
+
+      - name: status
+        description: "Status da sessão (completed, aborted, etc.)."
+        data_type: varchar
+
+      - name: source_app
+        description: "Fonte ou aplicativo de origem dos dados."
+        data_type: varchar
+
+      - name: template_title
+        description: "Nome do treino/plano no aplicativo (quando disponível)."
+        data_type: varchar
+
+      - name: total_sets
+        description: "Quantidade total de sets realizados na sessão (se calculado)."
+        data_type: integer
+
+      - name: total_reps
+        description: "Quantidade total de repetições na sessão (se calculado)."
+        data_type: integer
+
+      - name: total_volume_kg
+        description: "Volume total da sessão em kg (soma de peso * reps)."
+        data_type: double
+
+      - name: total_distance_m
+        description: "Distância total percorrida na sessão, em metros."
+        data_type: double
+
+      - name: calories_estimated
+        description: "Estimativa de calorias gastas na sessão, se disponível."
+        data_type: double
+
+      - name: sets_raw
+        description: "Campo JSON com a lista de sets e suas propriedades (exercício, reps, etc.)."
+        data_type: varchar
+
+      - name: created_at
+        description: "Data/hora de criação do registro da sessão."
+        data_type: timestamp
+
+  # -----------------------------------------------------------
+  # DICIONÁRIO DE EXERCÍCIOS KAGGLE
+  # -----------------------------------------------------------
+  - name: stg_bronze_kaggle_exercises
+    description: >
+      Dicionário de exercícios proveniente do dataset do Kaggle,
+      contendo metadados como equipamento, músculo principal e nível.
+    columns:
+      - name: exercise_name
+        description: "Nome do exercício no dataset Kaggle."
+        data_type: varchar
+        tests:
+          - not_null
+          - unique
+
+      - name: equipment
+        description: "Equipamento utilizado (Barbell, Machine, Bodyweight, etc.)."
+        data_type: varchar
+
+      - name: main_muscle
+        description: "Principal músculo alvo do exercício."
+        data_type: varchar
+
+      - name: synergist_muscles
+        description: "Outros músculos envolvidos (lista/descrição)."
+        data_type: varchar
+
+      - name: level
+        description: "Nível de dificuldade (Beginner, Intermediate, Advanced)."
+        data_type: varchar
+
+      - name: force
+        description: "Tipo de força predominante (Push, Pull, Static, etc.)."
+        data_type: varchar
+
+      - name: category
+        description: "Categoria do exercício (Strength, Cardio, Stretching, etc.)."
+        data_type: varchar
+
+      - name: movement_pattern
+        description: "Padrão de movimento (Squat, Hinge, Press, Pull, Gait, etc.)."
+        data_type: varchar
+
+      - name: unilateral_flag
+        description: "Indica se o exercício é unilateral (TRUE/FALSE)."
+        data_type: boolean
+
+      - name: url_video
+        description: "URL de vídeo de referência do exercício, se disponível."
+        data_type: varchar
+
+      - name: notes
+        description: "Campo livre para observações adicionais."
+        data_type: varchar
+
+  # -----------------------------------------------------------
+  # DE–PARA HEVY x KAGGLE
+  # -----------------------------------------------------------
+  - name: stg_bronze_depara_manual_heavy_kaggle
+    description: >
+      Tabela de mapeamento manual entre os nomes de exercícios
+      do Hevy (dataset de sessões) e os exercícios do Kaggle,
+      utilizada para enriquecer as sessões com metadados detalhados.
+    columns:
+      - name: hevy_exercise
+        description: "Nome do exercício conforme aparece nas sessões do Hevy."
+        data_type: varchar
+        tests:
+          - not_null
+
+      - name: kaggle_exercise
+        description: "Nome do exercício correspondente no dicionário Kaggle."
+        data_type: varchar
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bronze_kaggle_exercises')
+              field: exercise_name
+
+      - name: comment
+        description: "Observações sobre o mapeamento (ambiguidade, ajuste de nome etc.)."
+        data_type: varchar

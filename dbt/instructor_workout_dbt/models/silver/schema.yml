@@ -1,0 +1,124 @@
+version: 2
+
+models:
+  - name: silver_dim_user
+    description: "Dimensão de usuários dos treinos."
+    columns:
+      - name: user_id
+        description: "Identificador único do usuário."
+        tests:
+          - not_null
+          - unique
+      - name: user_name
+        description: "Nome do usuário."
+      - name: birth_date
+        description: "Data de nascimento do usuário."
+      - name: goal
+        description: "Objetivo principal do usuário (hipertrofia, emagrecimento, etc.)."
+      - name: level
+        description: "Nível de experiência (iniciante, intermediário, avançado)."
+
+  - name: silver_dim_exercise
+    description: "Dimensão de exercícios (Kaggle)."
+    columns:
+      - name: exercise_id
+        description: "Chave surrogate do exercício."
+        tests:
+          - not_null
+          - unique
+      - name: exercise_name
+        description: "Nome do exercício."
+        tests:
+          - not_null
+      - name: equipment
+        description: "Equipamento necessário para o exercício."
+      - name: main_muscle
+        description: "Principal músculo trabalhado."
+
+  - name: silver_dim_workout_session
+    description: "Dimensão de sessões/rotinas de treino."
+    columns:
+      - name: workout_session_id
+        description: "Identificador único da sessão de treino."
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        description: "Usuário dono da sessão."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_dim_user')
+              field: user_id
+
+  - name: silver_fct_workout_set
+    description: "Fato de séries de treino (uma linha por série)."
+    columns:
+      - name: workout_set_sk
+        description: "Chave surrogate da série."
+        tests:
+          - not_null
+          - unique
+
+      - name: user_id
+        description: "Usuário que executou a série."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_dim_user')
+              field: user_id
+
+      - name: workout_session_id
+        description: "Sessão de treino à qual a série pertence."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_dim_workout_session')
+              field: workout_session_id
+
+      - name: exercise_id
+        description: "Exercício executado na série."
+        tests:
+          - relationships:
+              to: ref('silver_dim_exercise')
+              field: exercise_id
+
+      - name: exercise_name_kaggle
+        description: "Nome do exercício vindo do dataset Kaggle."
+
+      - name: set_id
+        description: "Identificador da série dentro da sessão."
+      - name: set_order
+        description: "Ordem da série no treino."
+      - name: exercise_order
+        description: "Ordem do exercício dentro do treino."
+      - name: superset_id
+        description: "Identificador de superset, se aplicável."
+      - name: weight_kg
+        description: "Carga em kg utilizada na série."
+      - name: reps
+        description: "Número de repetições na série."
+      - name: distance_km
+        description: "Distância percorrida em km (aeróbico)."
+      - name: duration_seconds
+        description: "Duração da série em segundos."
+      - name: rpe
+        description: "Percepção subjetiva de esforço (RPE)."
+
+  - name: silver_user_nutrition
+    description: "Tabela de hábitos de saúde/nutrição dos usuários."
+    columns:
+      - name: user_id
+        description: "Usuário ao qual os hábitos pertencem."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('silver_dim_user')
+              field: user_id
+
+      - name: record_date
+        description: "Data do registro dos hábitos."
+        tests:
+          - not_null
+      - name: nutrition_score
+        description: "Score geral de nutrição/saúde."

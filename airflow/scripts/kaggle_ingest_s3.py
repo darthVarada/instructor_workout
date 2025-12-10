@@ -43,10 +43,20 @@ def ingest_kaggle_to_s3():
     with zipfile.ZipFile(zip_path, "r") as z:
         z.extractall(tmp_dir)
 
-    csv_path = next(
-        (os.path.join(tmp_dir, f) for f in os.listdir(tmp_dir) if f.endswith(".csv")),
-        None
-    )
+    # ✅ Escolhe explicitamente o dataset certo
+    csv_files = [f for f in os.listdir(tmp_dir) if f.endswith(".csv")]
+
+    print("📂 Arquivos CSV encontrados:", csv_files)
+
+    # Define exatamente qual você quer
+    TARGET_CSV = "gym_exercise_dataset.csv"
+
+    if TARGET_CSV not in csv_files:
+        raise RuntimeError(f"❌ Arquivo esperado não encontrado: {TARGET_CSV}")
+
+    csv_path = os.path.join(tmp_dir, TARGET_CSV)
+    print(f"✔️ CSV selecionado corretamente: {csv_path}")
+
 
     if not csv_path:
         raise RuntimeError("❌ CSV não encontrado dentro do arquivo baixado!")

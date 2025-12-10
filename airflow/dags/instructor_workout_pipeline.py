@@ -1,5 +1,6 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
+from airflow.models.baseoperator import chain
 from datetime import datetime
 
 default_args = {
@@ -12,11 +13,15 @@ with DAG(
     dag_id="instructor_workout_pipeline",
     default_args=default_args,
     description="Pipeline completo Bronze → Silver → Gold",
-    schedule_interval="*/30 * * * *",  # Roda a cada 30 minutos
+    schedule_interval="*/30 * * * *",
     start_date=datetime(2025, 1, 1),
     catchup=False,
     max_active_runs=1,
 ) as dag:
+
+    # =========================
+    # BRONZE
+    # =========================
 
     create_lake = BashOperator(
         task_id="create_lake_structure",
@@ -43,6 +48,15 @@ with DAG(
         bash_command="python /opt/airflow/scripts/users_form_ingest_s3.py"
     )
 
+    depara_ingest = BashOperator(
+        task_id="ingest_depara_heavy_kaggle",
+        bash_command="python /opt/airflow/scripts/depara_heavy_kaggle_ingest_s3.py"
+    )
+
+    # =========================
+    # SILVER
+    # =========================
+
     silver_transform = BashOperator(
         task_id="silver_transform",
         bash_command="python /opt/airflow/scripts/silver_synthetic_transform.py"
@@ -58,21 +72,39 @@ with DAG(
         bash_command="python /opt/airflow/scripts/silver_users_transform.py"
     )
 
+    silver_depara = BashOperator(
+        task_id="silver_depara_heavy_kaggle",
+        bash_command="python /opt/airflow/scripts/silver_depara_heavy_kaggle_transform.py"
+    )
+
+    # =========================
+    # GOLD
+    # =========================
+
     gold_metrics = BashOperator(
         task_id="gold_metrics",
         bash_command="python /opt/airflow/scripts/gold_metrics.py"
     )
-from airflow.models.baseoperator import chain
 
-# 1️⃣ Create lake roda primeiro
-chain(
-    create_lake,
-    [ingest_hevy, ingest_kaggle, ingest_users_form, ingest_hevy_base],
-)
+    gold_dim_exercise = BashOperator(
+        task_id="gold_dim_exercise",
+        bash_command="python /opt/airflow/scripts/gold_dim_exercises.py"
+    )
 
-# 2️⃣ Todas as ingests disparam TODAS as silvers
-for ingest in [ingest_hevy, ingest_kaggle, ingest_users_form, ingest_hevy_base]:
-    ingest >> [silver_transform, silver_kaggle, silver_users]
+    # =========================
+    # DEPENDÊNCIAS (FORMA CORRETA)
+    # =========================
 
-# 3️⃣ Todas as silvers disparam o gold
-[silver_transform, silver_kaggle, silver_users] >> gold_metrics
+    # 1️⃣ Create lake primeiro
+    chain(
+        create_lake,
+        [ingest_hevy, ingest_kaggle, ingest_users_form, ingest_hevy_base, depara_ingest],
+    )
+
+    # 2️⃣ TODAS as ingests disparam TODAS as silvers
+    for ingest in [ingest_hevy, ingest_kaggle, ingest_users_form, ingest_hevy_base, depara_ingest]:
+        ingest >> [silver_transform, silver_kaggle, silver_users, silver_depara]
+
+    # 3️⃣ TODAS as silvers disparam TODOS os golds
+    for silver in [silver_transform, silver_kaggle, silver_users, silver_depara]:
+        silver >> [gold_metrics, gold_dim_exercise]

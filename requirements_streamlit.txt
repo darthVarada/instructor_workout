@@ -1,0 +1,13 @@
+streamlit
+pandas
+pyarrow
+duckdb
+boto3
+s3fs
+python-dotenv
+pydantic
+httpx
+tenacity
+prometheus-client
+groq
+bcrypt

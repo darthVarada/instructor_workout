@@ -229,3 +229,5 @@ src/instructor_workout/etl/AWS Scripts/credential.py
 src/instructor_workout/streamlit_app/.streamlit/
 src/instructor_workout/streamlit_app/.pages/
 *.parquet
+
+

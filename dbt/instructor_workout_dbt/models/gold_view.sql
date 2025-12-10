@@ -1,13 +1,38 @@
+{{ config(enabled=false) }}
+
+
+with fact_workouts as (
+    select *
+    from {{ ref('fact_workouts') }}
+),
+
+exercises as (
+    select *
+    from {{ ref('exercises_dim') }}
+),
+
+muscles as (
+    select *
+    from {{ ref('muscles_bridge') }}
+),
+
+instructions as (
+    select *
+    from {{ ref('instructions_bridge') }}
+)
+
 select
-    e.exercise_id,
+    f.user_id,
+    f.workout_date,
+    f.exercise_id,
     e.exercise_name,
-    e.equipment,
-    e.main_muscle,
     m.muscle,
-    i.step_number,
-    i.instruction
-from {{ source('gold', 'exercises_dim') }} e
-left join {{ source('gold', 'muscles_bridge') }} m
-    on e.exercise_id = m.exercise_id
-left join {{ source('gold', 'instructions_bridge') }} i
-    on e.exercise_id = i.exercise_id
+    i.instructions_text,
+    f.reps,
+    f.sets,
+    f.weight
+from fact_workouts f
+left join exercises    e on f.exercise_id = e.exercise_id
+left join muscles      m on f.exercise_id = m.exercise_id
+left join instructions i on f.exercise_id = i.exercise_id
+

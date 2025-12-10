@@ -1,0 +1,11 @@
+FROM apache/airflow:2.9.1-python3.12
+
+# Já começamos como usuário airflow (imagem oficial já define)
+USER airflow
+
+# Instalar dbt-duckdb + duckdb para o Airflow rodar dbt
+RUN pip install --no-cache-dir \
+    dbt-duckdb==1.10.0 \
+    duckdb==1.0.0
+
+WORKDIR /opt/airflow

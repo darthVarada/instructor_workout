@@ -1,0 +1,23 @@
+instructor_workout_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('DBT_DUCKDB_PATH', 'instructor_workout.duckdb') }}"
+      threads: 4
+
+      # Extensões necessárias pra ler do S3 e Parquet
+      extensions:
+        - httpfs
+        - parquet
+
+      # Configs pra acessar o S3 da AWS
+      settings:
+        s3_region: "sa-east-1"
+        s3_access_key_id: "{{ env_var('AWS_ACCESS_KEY_ID') }}"
+        s3_secret_access_key: "{{ env_var('AWS_SECRET_ACCESS_KEY') }}"
+        s3_session_token: "{{ env_var('AWS_SESSION_TOKEN', '') }}"
+        s3_use_ssl: true
+        s3_url_style: "path"
+        # endpoint padrão da AWS (não é MinIO)
+        s3_endpoint: "https://s3.sa-east-1.amazonaws.com"

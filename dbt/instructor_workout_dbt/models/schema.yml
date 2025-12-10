@@ -1,188 +1,100 @@
 version: 2
 
-sources:
-  - name: s3_bronze
-    description: "Camada BRONZE no bucket S3 instructor-workout-datas."
-    meta:
-      bucket: "instructor-workout-datas"
-
-    tables:
-      - name: user_form_raw
-        description: "Logs incrementais do formulário de usuário vindos da aplicação."
-        meta:
-          s3_prefix: "bronze/user_form/"
-        columns:
-          - name: user_id
-            description: "Identificador único do usuário (UUID)."
-          - name: data_registro
-            description: "Data/hora em que o formulário foi salvo."
-          - name: nome
-            description: "Nome completo informado no formulário."
-          - name: data_nascimento
-            description: "Data de nascimento."
-          - name: sexo
-            description: "Sexo informado (Masculino/Feminino)."
-          - name: peso
-            description: "Peso em kg."
-          - name: altura
-            description: "Altura em cm."
-          - name: percentual_gordura
-            description: "Percentual estimado de gordura corporal."
-          - name: objetivo
-            description: "Objetivo principal (hipertrofia, emagrecimento, condicionamento)."
-          - name: nivel_treinamento
-            description: "Nível de experiência (iniciante, intermediário, avançado)."
-          - name: restricoes_fisicas
-            description: "Restrições físicas relatadas."
-          - name: frequencia_semanal
-            description: "Quantidade de dias de treino por semana."
-          - name: horas_sono
-            description: "Média de horas de sono por noite."
-          - name: nutricional_score
-            description: "Score qualitativo da alimentação."
-
-      - name: workouts_test_raw
-        description: "Fato de treinos falsos para teste do dashboard."
-        meta:
-          s3_prefix: "test/fact_workouts/"
-        columns:
-          - name: workout_id
-            description: "Identificador do treino."
-          - name: user_id
-            description: "Identificador do usuário (quando existir)."
-          - name: date
-            description: "Data do treino."
-          - name: muscle_group
-            description: "Grupo muscular principal trabalhado."
-          - name: total_sets
-            description: "Total de séries do treino."
-          - name: total_reps
-            description: "Total de repetições."
-          - name: duration_min
-            description: "Duração total do treino em minutos."
-
-  - name: s3_gold
-    description: "Camada GOLD consolidada no bucket S3 instructor-workout-datas."
-    meta:
-      bucket: "instructor-workout-datas"
-
-    tables:
-      - name: app_users
-        description: "Cadastro de usuários da aplicação (login, e-mail, etc)."
-        meta:
-          s3_prefix: "gold/app_users/"
-        columns:
-          - name: user_id
-            description: "UUID do usuário cadastrado."
-          - name: nome
-            description: "Nome completo."
-          - name: email
-            description: "E-mail usado para login."
-          - name: created_at
-            description: "Data/hora em que o usuário foi criado."
-          - name: data_nascimento
-            description: "Data de nascimento (quando preenchida)."
-          - name: sexo
-            description: "Sexo (quando preenchido)."
-          - name: peso
-            description: "Peso atual informado."
-          - name: altura
-            description: "Altura atual informada."
-          - name: percentual_gordura
-            description: "Percentual de gordura."
-          - name: objetivo
-            description: "Objetivo principal."
-          - name: nivel_treinamento
-            description: "Nível de treinamento."
-          - name: restricoes_fisicas
-            description: "Restrições físicas."
-          - name: frequencia_semanal
-            description: "Frequência semanal."
-          - name: horas_sono
-            description: "Horas de sono."
-          - name: nutricional_score
-            description: "Score de alimentação."
-
-      - name: dim_users_parquet
-        description: "Arquivos Parquet de DIM_USERS na camada GOLD (dim_users_YYYYMMDD.parquet)."
-        meta:
-          s3_prefix: "gold/dim_users/"
-        columns:
-          - name: user_id
-            description: "Chave da dimensão de usuário."
-          - name: data_registro
-            description: "Última data de atualização consolidada do perfil."
-          - name: nome
-            description: "Nome completo."
-          - name: data_nascimento
-            description: "Data de nascimento."
-          - name: sexo
-            description: "Sexo."
-          - name: peso
-            description: "Peso atual consolidado."
-          - name: altura
-            description: "Altura."
-          - name: percentual_gordura
-            description: "Percentual de gordura."
-          - name: objetivo
-            description: "Objetivo de treino."
-          - name: nivel_treinamento
-            description: "Nível de treinamento."
-          - name: restricoes_fisicas
-            description: "Restrições físicas."
-          - name: frequencia_semanal
-            description: "Frequência semanal consolidada."
-          - name: horas_sono
-            description: "Média de horas de sono."
-          - name: nutricional_score
-            description: "Score nutricional médio."
-
 models:
-  - name: stg_bronze_user_form
-    description: "Stage da camada BRONZE do formulário de usuário, lendo Parquet direto do S3."
+  - name: silver_users
+    description: "Camada Silver de usuários gerada pelo pipeline, já limpa e normalizada."
     columns:
       - name: user_id
-        description: "Chave do usuário."
-      - name: data_registro
-        description: "Data/hora do registro no BRONZE."
+        description: "Identificador único do usuário."
+        tests:
+          - not_null
+      - name: full_name
+        description: "Nome completo do usuário."
+      - name: gender
+        description: "Gênero informado."
+      - name: birth_date
+        description: "Data de nascimento."
+      - name: goal
+        description: "Objetivo principal (ex: hipertrofia, emagrecimento)."
 
-  - name: stg_bronze_workouts
-    description: "Stage de treinos de teste para exploração inicial e dashboard."
+  - name: silver_exercises
+    description: "Camada Silver de exercícios, derivada do dataset de Kaggle."
+    columns:
+      - name: exercise_id
+        description: "Identificador único do exercício."
+      - name: exercise_name
+        description: "Nome do exercício."
+      - name: primary_muscle
+        description: "Principal músculo trabalhado."
+
+  - name: silver_workouts
+    description: "Workouts realistas sintetizados na camada Silver."
     columns:
       - name: workout_id
-        description: "Chave do treino."
-      - name: date
-        description: "Data do treino."
+        description: "Identificador único do treino."
+      - name: user_id
+        description: "Referência ao usuário executor do treino."
+      - name: workout_datetime
+        description: "Data e hora do treino."
+      - name: workout_date
+        description: "Data (dia) do treino."
+      - name: exercise_id
+        description: "Exercício realizado."
+      - name: sets
+        description: "Número de séries."
+      - name: reps
+        description: "Número de repetições."
+      - name: weight
+        description: "Carga utilizada."
+      - name: volume
+        description: "Métrica de volume (ex: sets * reps * weight)."
 
   - name: dim_users
-    description: "Dimensão final de usuários (camada GOLD) usada em análises e dashboards."
+    description: "Dimensão de usuários, com o último snapshot de perfil."
     columns:
       - name: user_id
-        description: "Chave primária da dimensão de usuário."
+        description: "Chave primária da dimensão de usuários."
         tests:
-          - unique
           - not_null
-      - name: nome
-        description: "Nome completo do usuário."
-      - name: objetivo
-        description: "Objetivo de treino principal."
+          - unique
+      - name: full_name
+        description: "Nome completo."
+      - name: goal
+        description: "Objetivo de treino do usuário."
+
+  - name: dim_exercises
+    description: "Dimensão de exercícios para análises e recomendações."
+    columns:
+      - name: exercise_id
+        description: "Chave primária de exercício."
+        tests:
+          - not_null
+          - unique
+      - name: exercise_name
+        description: "Nome do exercício."
+      - name: primary_muscle
+        description: "Principal músculo trabalhado."
 
   - name: fact_workouts
-    description: "Fato de treinos consolidados por usuário e data."
+    description: "Fato de treinos com medidas de desempenho."
     columns:
       - name: workout_id
         description: "Chave do treino."
-        tests:
-          - unique
       - name: user_id
-        description: "Chave para DIM_USERS."
-      - name: date
-        description: "Data do treino."
-      - name: muscle_group
-        description: "Grupo muscular."
-      - name: total_sets
-        description: "Séries total."
-      - name: total_reps
-        description: "Repetições totais."
-      - name: duration_min
-        description: "Duração do treino em minutos."
+        description: "Chave para dim_users."
+      - name: exercise_id
+        description: "Chave para dim_exercises."
+      - name: volume
+        description: "Volume total do exercício na sessão."
+
+  - name: gold_workouts_enriched
+    description: "Tabela Gold combinando usuários, exercícios e treinos, pronta para dashboards e IA."
+    columns:
+      - name: user_id
+        description: "Identificador do usuário."
+      - name: full_name
+        description: "Nome do usuário."
+      - name: primary_muscle
+        description: "Principal músculo atingido no exercício."
+      - name: sets
+        description: "Séries executadas no exercício."

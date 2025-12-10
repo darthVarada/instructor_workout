@@ -1,0 +1,138 @@
+# docker-compose.yml
+# (sem campo "version" pra não dar o warning de versão obsoleta)
+
+services:
+  # =========================
+  # BANCO DE DADOS (POSTGRES)
+  # =========================
+  postgres:
+    image: postgres:15
+    container_name: instructor_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # =========================
+  # AIRFLOW WEBSERVER
+  # =========================
+  instructor_airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+      target: airflow          # target definido no Dockerfile.airflow
+    container_name: instructor_airflow
+    restart: always
+
+    env_file:
+      - .env                   # suas variáveis ficam aqui
+
+    environment:
+      # Configs básicas do Airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__WEBSERVER__RBAC: "True"
+
+      # Se você usar AWS no projeto, pode deixar assim
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+
+    depends_on:
+      - postgres
+
+    ports:
+      - "8080:8080"            # Airflow Web UI
+
+    volumes:
+      # >>> AQUI É O PONTO CRÍTICO PARA SUA DAG ANTIGA FUNCIONAR <<<
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/scripts:/opt/airflow/scripts
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+
+  # =========================
+  # AIRFLOW SCHEDULER
+  # =========================
+  instructor_airflow_scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+      target: airflow_scheduler
+    container_name: instructor_airflow_scheduler
+    restart: always
+
+    env_file:
+      - .env
+
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__WEBSERVER__RBAC: "True"
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+
+    depends_on:
+      - postgres
+      - instructor_airflow
+
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/scripts:/opt/airflow/scripts
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+
+  # =========================
+  # DBT DOCS (se estiver usando)
+  # =========================
+  dbt_docs:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+      target: dbt_docs
+    container_name: instructor_dbt_docs
+    restart: always
+
+    env_file:
+      - .env
+
+    depends_on:
+      - postgres
+
+    # Ajuste o caminho do seu projeto dbt se for diferente
+    volumes:
+      - ./dbt:/usr/app/dbt
+
+    ports:
+      - "8081:8080"            # Porta para acessar dbt docs
+
+  # =========================
+  # STREAMLIT APP
+  # =========================
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: instructor_streamlit
+    restart: always
+
+    env_file:
+      - .env
+
+    depends_on:
+      - instructor_airflow
+      - postgres
+
+    volumes:
+      # Ajuste conforme seu projeto. Pelo log, o código tá em /app/src
+      - ./src:/app/src
+
+    ports:
+      - "8501:8501"            # Streamlit UI
+
+volumes:
+  postgres_data:

@@ -1,0 +1,30 @@
+# Logs do Airflow (evitar erro de arquivo travado no build)
+airflow/logs
+airflow/logs/**
+airflow/logs/*
+
+# Ambiente virtual
+.venv
+.venv/**
+
+# Dados locais pesados
+data
+data/**
+
+# Saída do dbt
+dbt/instructor_workout_dbt/target
+dbt/instructor_workout_dbt/dbt_packages
+
+# Cache Python
+__pycache__
+**/__pycache__
+
+# Git
+.git
+.git/**
+
+# Outras pastas que não interessam pro build da imagem
+tests
+estudo
+observability
+tools

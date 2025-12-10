@@ -1,29 +1,20 @@
-name: "instructor_workout_dbt"
-version: "1.0.0"
+name: 'instructor_workout_dbt'
+version: '1.0.0'
 config-version: 2
 
-profile: "instructor_workout_dbt"
+profile: 'instructor_workout_dbt'
 
-model-paths: ["models"]
-seed-paths: ["seeds"]
-test-paths: ["tests"]
-analysis-paths: ["analyses"]
-macro-paths: ["macros"]
-snapshot-paths: ["snapshots"]
-target-path: "target"
-log-path: "logs"
-
-# Config padrões por camada
 models:
   instructor_workout_dbt:
+    +persist_docs:
+      relation: true
+      columns: true
+
     bronze:
-      +schema: "bronze"
-      +materialized: view
+      +schema: bronze
 
     silver:
-      +schema: "silver"
-      +materialized: table
+      +schema: silver
 
     gold:
-      +schema: "gold"
-      +materialized: table
+      +schema: gold

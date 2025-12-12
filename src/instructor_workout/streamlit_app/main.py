@@ -10,6 +10,14 @@ from login_service import (
     get_user_profile_by_id,
 )
 
+# Exemplo: pegue o user_id logado de onde você já estiver pegando (auth, sessão, etc.)
+def get_current_user_id():
+    # TODO: trocar por sua lógica real
+    return st.session_state.get("current_user_id", "USER_ATUAL_EXEMPLO")
+
+if "current_user_id" not in st.session_state:
+    st.session_state.current_user_id = get_current_user_id()
+
 st.set_page_config(
     page_title="Instructor Workout – Personal Trainer IA",
     page_icon="🏋️",
@@ -33,6 +41,40 @@ if "current_page" not in st.session_state:
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
+
+def importar_dados_de_outro_usuario_ui():
+    st.subheader("Importar dados de outro usuário")
+
+    source_user_id = st.text_input("User ID de origem (de quem você quer copiar os dados)")
+    current_user_id = st.session_state.current_user_id
+
+    if st.button("Puxar dados desse usuário"):
+        if not source_user_id:
+            st.error("Informe um user_id de origem.")
+            return
+
+        try:
+            # 1) Carrega o pacote completo do usuário de origem
+            pacote = carregar_pacote_usuario(source_user_id)
+
+            if not pacote:
+                st.warning("Não encontrei dados para esse user_id.")
+                return
+
+            # 2) Copia esses dados para o usuário atual
+            copiar_pacote_para_usuario_atual(
+                pacote_origem=pacote,
+                target_user_id=current_user_id,
+            )
+
+            # 3) Opcional: atualizar o formulário no estado da sessão
+            st.session_state["form_data"] = pacote.get("formulario", {})
+
+            st.success(
+                f"Dados do usuário {source_user_id} copiados para a sua conta ({current_user_id})."
+            )
+        except Exception as e:
+            st.error(f"Erro ao importar dados: {e}")
 
 
 # =========================
@@ -152,15 +194,23 @@ if not user:
 
 else:
     load_profile_if_needed()
-    profile = st.session_state.user_profile
+    profile = st.session_state.user_profile or {}
+    logged = st.session_state.logged_user or {}
+
+    # Nome: prefere 'nome' do profile, senão 'name' do usuário logado
+    display_name = profile.get("nome") or logged.get("name") or "Usuário"
+
+    # E-mail: prefere do profile, senão do usuário logado
+    display_email = profile.get("email") or logged.get("email") or "-"
 
     # SIDEBAR
     with st.sidebar:
-        st.markdown(f"### 👤 {profile.get('nome') or 'Usuário'}")
-        st.markdown(f"**E-mail:** {profile.get('email')}")
+        st.markdown(f"### 👤 {display_name}")
+        st.markdown(f"**E-mail:** {display_email}")
         st.markdown("---")
 
         page = st.radio("Navegação", ["Formulário", "Chat", "Dashboard"], key="sidebar_nav")
+
 
         st.markdown("---")
         if st.button("Sair"):
@@ -175,4 +225,3 @@ else:
 
     elif page == "Dashboard":
         dashboard.render(profile)
-    

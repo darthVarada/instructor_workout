@@ -363,3 +363,36 @@ def save_user_profile(profile: Dict[str, Any]) -> None:
         BRONZE_USER_FORM_PATH + file_name,
     )
     print("✅ [DEBUG] Perfil salvo em GOLD e BRONZE.")
+
+
+# -------------------------------------------------
+# GET OR CREATE PROFILE BY EMAIL
+# -------------------------------------------------
+def get_or_create_user_profile_by_email(email: str):
+    """
+    Retorna o profile do usuário pelo e-mail.
+    Se não existir, cria um novo profile básico.
+    """
+    users = load_users()  # já existe no seu arquivo
+    for user in users:
+        if user.get("email") == email:
+            return user
+
+    # Criar um novo perfil caso não exista
+    new_user = {
+        "user_id": generate_user_id(),
+        "email": email,
+        "nome": "",
+        "data_nascimento": None,
+        "sexo": None,
+        "peso": 0,
+        "altura": 0,
+        "gordura": 0,
+        "objetivo": "",
+        "experiencia": "Iniciante",
+    }
+
+    users.append(new_user)
+    save_users(users)
+
+    return new_user

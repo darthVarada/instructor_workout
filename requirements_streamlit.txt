@@ -11,3 +11,4 @@ tenacity
 prometheus-client
 groq
 bcrypt
+matplotlib

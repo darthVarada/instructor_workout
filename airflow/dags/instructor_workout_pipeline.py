@@ -90,6 +90,14 @@ with DAG(
         task_id="gold_dim_exercise",
         bash_command="python /opt/airflow/scripts/gold_dim_exercises.py"
     )
+    gold_fact_workout_sets = BashOperator(
+    task_id="gold_fact_workout_sets",
+    bash_command="python /opt/airflow/scripts/gold_fact_workout_sets.py",
+    )
+    gold_dim_exercises_kaggle = BashOperator(
+    task_id="gold_dim_exercises_kaggle",
+    bash_command="python /opt/airflow/scripts/gold_dim_exercises_kaggle.py",
+    )
 
     # =========================
     # DEPENDÊNCIAS (FORMA CORRETA)
@@ -107,4 +115,4 @@ with DAG(
 
     # 3️⃣ TODAS as silvers disparam TODOS os golds
     for silver in [silver_transform, silver_kaggle, silver_users, silver_depara]:
-        silver >> [gold_metrics, gold_dim_exercise]
+        silver >> [gold_metrics, gold_dim_exercise,gold_fact_workout_sets,gold_dim_exercises_kaggle]

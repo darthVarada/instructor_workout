@@ -1,244 +1,227 @@
-import os
-import json
-import uuid
-from datetime import datetime, date
-import re
-import pandas as pd
 import streamlit as st
-from groq import Groq
-from streamlit_cookies_manager import EncryptedCookieManager
 
-st.set_page_config(page_title="Instructor Workout – Personal Trainer IA", layout="centered")
+import chat
+import formulario
+import dashboard
 
-cookies = EncryptedCookieManager(prefix="iw/", password="instructor-workout-123")
+from login_service import (
+    authenticate,
+    register_user,
+    get_user_profile_by_id,
+)
 
-if not cookies.ready():
-    st.stop()
+# Exemplo: pegue o user_id logado de onde você já estiver pegando (auth, sessão, etc.)
+def get_current_user_id():
+    # TODO: trocar por sua lógica real
+    return st.session_state.get("current_user_id", "USER_ATUAL_EXEMPLO")
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-MODEL = "llama-3.1-8b-instant"
+if "current_user_id" not in st.session_state:
+    st.session_state.current_user_id = get_current_user_id()
+
+st.set_page_config(
+    page_title="Instructor Workout – Personal Trainer IA",
+    page_icon="🏋️",
+    layout="centered",
+)
+
+# =========================
+# ESTADO GLOBAL
+# =========================
+if "logged_user" not in st.session_state:
+    st.session_state.logged_user = None
+
+if "user_profile" not in st.session_state:
+    st.session_state.user_profile = None
+
+if "auth_mode" not in st.session_state:
+    st.session_state.auth_mode = "login"
+
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "formulario"
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+def importar_dados_de_outro_usuario_ui():
+    st.subheader("Importar dados de outro usuário")
+
+    source_user_id = st.text_input("User ID de origem (de quem você quer copiar os dados)")
+    current_user_id = st.session_state.current_user_id
+
+    if st.button("Puxar dados desse usuário"):
+        if not source_user_id:
+            st.error("Informe um user_id de origem.")
+            return
+
+        try:
+            # 1) Carrega o pacote completo do usuário de origem
+            pacote = carregar_pacote_usuario(source_user_id)
+
+            if not pacote:
+                st.warning("Não encontrei dados para esse user_id.")
+                return
+
+            # 2) Copia esses dados para o usuário atual
+            copiar_pacote_para_usuario_atual(
+                pacote_origem=pacote,
+                target_user_id=current_user_id,
+            )
+
+            # 3) Opcional: atualizar o formulário no estado da sessão
+            st.session_state["form_data"] = pacote.get("formulario", {})
+
+            st.success(
+                f"Dados do usuário {source_user_id} copiados para a sua conta ({current_user_id})."
+            )
+        except Exception as e:
+            st.error(f"Erro ao importar dados: {e}")
 
 
 # =========================
-# COOKIES
+# HELPER — LOGOUT
 # =========================
-def salvar_perfil(perfil):
-    cookies["user_profile"] = json.dumps(perfil)
-    cookies.save()
+def do_logout():
+    for key in [
+        "logged_user",
+        "user_profile",
+        "auth_mode",
+        "current_page",
+        "chat_history",
+    ]:
+        if key in st.session_state:
+            del st.session_state[key]
 
-def carregar_perfil():
-    if cookies.get("user_profile"):
-        return json.loads(cookies.get("user_profile"))
-    return None
-
-def excluir_perfil():
-    cookies["user_profile"] = ""
-    cookies["recommended_workouts"] = ""
-    cookies.save()
-    st.session_state.clear()
+    st.session_state.auth_mode = "login"
     st.rerun()
 
-def carregar_treinos():
-    if cookies.get("recommended_workouts"):
-        return json.loads(cookies.get("recommended_workouts"))
-    return []
-
-def salvar_treino(pergunta, resposta, user_id):
-    treino = {
-        "id": str(uuid.uuid4()),
-        "user_id": user_id,
-        "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
-        "pergunta": pergunta,
-        "resposta": resposta
-    }
-    treinos = carregar_treinos()
-    treinos.append(treino)
-    cookies["recommended_workouts"] = json.dumps(treinos)
-    cookies.save()
-
 
 # =========================
-# IA COM MEMÓRIA DE CONVERSA
+# HELPER — LOAD PROFILE (BRONZE → GOLD)
 # =========================
-def calcular_idade(data_nascimento):
-    try:
-        # Tenta formato brasileiro primeiro: DD/MM/YYYY
-        nascimento = datetime.strptime(data_nascimento, "%d/%m/%Y").date()
-    except ValueError:
-        # Se falhar, tenta formato internacional: YYYY-MM-DD
-        nascimento = datetime.strptime(data_nascimento, "%Y-%m-%d").date()
-
-    hoje = date.today()
-    return hoje.year - nascimento.year - ((hoje.month, hoje.day) < (nascimento.month, nascimento.day))
-
-
-
-def ask_groq(pergunta, perfil):
-
-    system_prompt = f"""
-Você é um personal trainer profissional.
-
-REGRAS OBRIGATÓRIAS:
-- Nunca ignore os dados do perfil
-- Sempre respeite a frequência semanal: {perfil['frequencia_semanal']} vezes por semana
-- Nunca monte treino com mais dias que essa frequência
-- Respeite TODAS as restrições físicas: {perfil['restricoes_fisicas']}
-- Se o usuário corrigir algo, você DEVE ajustar
-- Nunca invente dias extras
-- Nunca contradiga respostas anteriores sem explicação
-
-Perfil do aluno:
-Nome: {perfil['nome']}
-Idade: {calcular_idade(perfil['data_nascimento'])}
-Objetivo: {perfil['objetivo']}
-Nível: {perfil['nivel_treinamento']}
-Restrições: {perfil['restricoes_fisicas']}
-Frequência semanal: {perfil['frequencia_semanal']}x
-"""
-
-    messages = [{"role": "system", "content": system_prompt}]
-
-    # ✅ ENVIA TODO O HISTÓRICO PARA O MODELO
-    if "chat" in st.session_state:
-        for msg in st.session_state.chat:
-            messages.append(msg)
-
-    messages.append({"role": "user", "content": pergunta})
-
-    completion = client.chat.completions.create(
-        model=MODEL,
-        messages=messages,
-        temperature=0.6
-    )
-
-    return completion.choices[0].message.content.strip()
-
-
-# =========================
-# TELAS
-# =========================
-def tela_cadastro():
-    st.title("🏋️ Cadastro Inicial")
-
-    with st.form("cadastro"):
-        nome = st.text_input("Nome")
-        data_nascimento = st.date_input("Data de nascimento", min_value=date(1950,1,1), max_value=date(2025,12,31))
-        sexo = st.selectbox("Sexo", ["Masculino", "Feminino"])
-        peso = st.number_input("Peso (kg)", 1)
-        altura = st.number_input("Altura (cm)", 1)
-        gordura = st.number_input("Gordura (%)", 1)
-        objetivo = st.selectbox("Objetivo", ["Hipertrofia", "Emagrecimento", "Condicionamento"])
-        nivel = st.selectbox("Nível", ["Iniciante", "Intermediário", "Avançado"])
-        restricoes = st.text_input("Restrições físicas")
-        freq = st.slider("Frequência semanal", 1, 7)
-        sono = st.slider("Horas de sono", 1, 12)
-        score = st.slider("Score nutricional", 0, 100)
-
-        if st.form_submit_button("Salvar"):
-            perfil = {
-                "user_id": str(uuid.uuid4()),
-                "data_registro": str(datetime.now()),
-                "nome": nome,
-                "data_nascimento": data_nascimento.strftime("%Y-%m-%d"),
-                "sexo": sexo,
-                "peso": peso,
-                "altura": altura,
-                "percentual_gordura": gordura,
-                "objetivo": objetivo,
-                "nivel_treinamento": nivel,
-                "restricoes_fisicas": restricoes,
-                "frequencia_semanal": freq,
-                "horas_sono": sono,
-                "nutricional_score": score
-            }
-
-            salvar_perfil(perfil)
-            st.success("Perfil criado com sucesso!")
-            st.rerun()
-
-
-def tela_chat(perfil):
-    st.title("💬 Personal Trainer")
-
-    if "chat" not in st.session_state:
-        st.session_state.chat = []
-
-    if "last_question" not in st.session_state:
-        st.session_state.last_question = ""
-        st.session_state.last_answer = ""
-
-    for msg in st.session_state.chat:
-        st.chat_message(msg["role"]).write(msg["content"])
-
-    pergunta = st.chat_input("Digite sua pergunta...")
-
-    if pergunta:
-        st.session_state.chat.append({"role":"user","content":pergunta})
-        resposta = ask_groq(pergunta, perfil)
-        st.session_state.chat.append({"role":"assistant","content":resposta})
-
-        st.session_state.last_question = pergunta
-        st.session_state.last_answer = resposta
-        st.rerun()
-
-    if st.session_state.last_answer:
-        if st.button("💾 Salvar treino recomendado"):
-            salvar_treino(st.session_state.last_question, st.session_state.last_answer, perfil["user_id"])
-            st.success("Treino salvo com sucesso!")
-            st.rerun()
-
-
-def tela_treinos():
-    st.title("📋 Treinos Recomendados")
-
-    treinos = carregar_treinos()
-
-    if not treinos:
-        st.info("Nenhum treino salvo ainda.")
+def load_profile_if_needed():
+    if not st.session_state.logged_user:
         return
 
-    for treino in treinos:
-        st.markdown(f"### {treino['data']}")
-        st.write(treino["resposta"])
+    if st.session_state.user_profile is None:
+        user_id = st.session_state.logged_user["user_id"]
+
+        latest = get_user_profile_by_id(user_id)
+
+        st.session_state.user_profile = latest or st.session_state.logged_user
 
 
-def tela_atualizacao(perfil):
-    st.title(f"Olá {perfil['nome']} 👋")
-    st.subheader("Atualize os dados do seu treino")
+# =========================
+# LOGIN SCREEN
+# =========================
+def login_screen():
+    st.markdown("## 👋 Bem-vindo ao Instructor Workout")
 
-    with st.form("update"):
-        perfil["peso"] = st.number_input("Peso", value=int(perfil["peso"]))
-        perfil["altura"] = st.number_input("Altura", value=int(perfil["altura"]))
-        perfil["percentual_gordura"] = st.number_input("Gordura (%)", value=int(perfil["percentual_gordura"]))
-        perfil["objetivo"] = st.selectbox("Objetivo", ["Hipertrofia","Emagrecimento","Condicionamento"])
-        perfil["nivel_treinamento"] = st.selectbox("Nível", ["Iniciante","Intermediário","Avançado"])
-        perfil["restricoes_fisicas"] = st.text_input("Restrições", value=perfil["restricoes_fisicas"])
-        perfil["frequencia_semanal"] = st.slider("Frequência",1,7,value=int(perfil["frequencia_semanal"]))
-        perfil["horas_sono"] = st.slider("Sono",1,12,value=int(perfil["horas_sono"]))
-        perfil["nutricional_score"] = st.slider("Nutrição",0,100,value=int(perfil["nutricional_score"]))
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("### Login")
 
-        if st.form_submit_button("Atualizar"):
-            salvar_perfil(perfil)
-            st.success("Perfil atualizado!")
+        email = st.text_input("E-mail", key="login_email")
+        password = st.text_input("Senha", type="password", key="login_password")
+
+        if st.button("Entrar", use_container_width=True):
+            ok, result = authenticate(email, password)
+
+            if not ok:
+                st.error(result)
+            else:
+                st.session_state.logged_user = result
+                load_profile_if_needed()
+                st.session_state.current_page = "formulario"
+
+                st.success("Login realizado com sucesso!")
+                st.rerun()
+
+        st.markdown("---")
+        if st.button("Ainda não tenho conta", use_container_width=True):
+            st.session_state.auth_mode = "register"
             st.rerun()
 
-    if st.button("❌ Excluir meu perfil"):
-        excluir_perfil()
+
+# =========================
+# REGISTER SCREEN
+# =========================
+def register_screen():
+    st.markdown("## 👋 Bem-vindo ao Instructor Workout")
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+
+    with col2:
+        st.markdown("### Criar conta")
+
+        name = st.text_input("Nome completo", key="register_name")
+        email = st.text_input("E-mail", key="register_email")
+        password = st.text_input("Senha", type="password", key="register_password")
+        password2 = st.text_input("Confirme a senha", type="password", key="register_password2")
+
+        if st.button("Criar conta", use_container_width=True):
+            if password != password2:
+                st.error("As senhas não conferem.")
+            else:
+                ok, result = register_user(name, email, password)
+
+                if not ok:
+                    st.error(result)
+                else:
+                    st.session_state.logged_user = result
+                    st.session_state.user_profile = result
+                    st.session_state.current_page = "formulario"
+
+                    st.success("Conta criada com sucesso! Vamos completar seu perfil.")
+                    st.rerun()
+
+        st.markdown("---")
+
+        if st.button("Já tenho conta", use_container_width=True):
+            st.session_state.auth_mode = "login"
+            st.rerun()
 
 
 # =========================
-# APP
+# APLICAÇÃO
 # =========================
-perfil = carregar_perfil()
+user = st.session_state.logged_user
 
-menu = st.sidebar.radio("Menu", ["Chat", "Treinos Recomendados", "Atualizar Perfil"])
+if not user:
+    if st.session_state.auth_mode == "login":
+        login_screen()
+    else:
+        register_screen()
 
-if not perfil:
-    tela_cadastro()
 else:
-    if menu == "Chat":
-        tela_chat(perfil)
-    elif menu == "Treinos Recomendados":
-        tela_treinos()
-    elif menu == "Atualizar Perfil":
-        tela_atualizacao(perfil)
+    load_profile_if_needed()
+    profile = st.session_state.user_profile or {}
+    logged = st.session_state.logged_user or {}
+
+    # Nome: prefere 'nome' do profile, senão 'name' do usuário logado
+    display_name = profile.get("nome") or logged.get("name") or "Usuário"
+
+    # E-mail: prefere do profile, senão do usuário logado
+    display_email = profile.get("email") or logged.get("email") or "-"
+
+    # SIDEBAR
+    with st.sidebar:
+        st.markdown(f"### 👤 {display_name}")
+        st.markdown(f"**E-mail:** {display_email}")
+        st.markdown("---")
+
+        page = st.radio("Navegação", ["Formulário", "Chat", "Dashboard"], key="sidebar_nav")
+
+
+        st.markdown("---")
+        if st.button("Sair"):
+            do_logout()
+
+    # PÁGINAS
+    if page == "Formulário":
+        formulario.render(profile)
+
+    elif page == "Chat":
+        chat.render(profile)
+
+    elif page == "Dashboard":
+        dashboard.render(profile)
